@@ -51,6 +51,161 @@ function findValue(obj: any, keyName: string): any {
   return undefined;
 }
 
+export function parseGpx(xmlData: string): TcxActivity {
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: "@_",
+    removeNSPrefix: false,
+  });
+  const jsonObj = parser.parse(xmlData);
+
+  const gpx = jsonObj?.gpx;
+  if (!gpx) {
+    throw new Error('Invalid GPX file: No gpx root found');
+  }
+
+  const track = Array.isArray(gpx.trk) ? gpx.trk[0] : gpx.trk;
+  const segments = Array.isArray(track?.trkseg) ? track.trkseg : [track?.trkseg];
+  
+  let heartRateSum = 0;
+  let heartRateCount = 0;
+  let maxHeartRate = 0;
+  let cadenceSum = 0;
+  let cadenceCount = 0;
+  let powerSum = 0;
+  let powerCount = 0;
+  let elevationGained = 0;
+  let lastAltitude: number | null = null;
+  
+  const rawTrackpoints: any[] = [];
+  let totalDistance = 0;
+  let lastLat: number | null = null;
+  let lastLng: number | null = null;
+
+  // Haversine formula for distance between GPS points
+  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // metres
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  segments.forEach((seg: any) => {
+    if (!seg) return;
+    const tps = Array.isArray(seg.trkpt) ? seg.trkpt : [seg.trkpt];
+    tps.forEach((tp: any) => {
+      if (!tp) return;
+      
+      const lat = parseFloat(tp["@_lat"]);
+      const lng = parseFloat(tp["@_lon"]);
+      const altVal = tp.ele ? parseFloat(tp.ele) : undefined;
+      const timeVal = tp.time;
+
+      if (lastLat !== null && lastLng !== null) {
+        totalDistance += getDistance(lastLat, lastLng, lat, lng);
+      }
+      lastLat = lat;
+      lastLng = lng;
+
+      // Extensions for HR, Cadence, Power
+      const hrVal = findValue(tp, 'hr') || findValue(tp, 'HeartRate');
+      const cadVal = findValue(tp, 'cad') || findValue(tp, 'cadence') || findValue(tp, 'RunCadence');
+      const powVal = findValue(tp, 'pwr') || findValue(tp, 'power') || findValue(tp, 'Watts');
+
+      const tpData = {
+        time: timeVal,
+        distance: totalDistance,
+        heartRate: hrVal ? parseInt(hrVal) : undefined,
+        cadence: cadVal ? parseInt(cadVal) : undefined,
+        power: powVal ? parseInt(powVal) : undefined,
+        altitude: altVal,
+        lat: lat,
+        lng: lng,
+      };
+      
+      if (tpData.cadence && tpData.cadence < 120) tpData.cadence *= 2;
+      
+      rawTrackpoints.push(tpData);
+
+      if (tpData.heartRate) {
+        maxHeartRate = Math.max(maxHeartRate, tpData.heartRate);
+        heartRateSum += tpData.heartRate;
+        heartRateCount++;
+      }
+      if (tpData.cadence) {
+        cadenceSum += tpData.cadence;
+        cadenceCount++;
+      }
+      if (tpData.power) {
+        powerSum += tpData.power;
+        powerCount++;
+      }
+      if (tpData.altitude !== undefined) {
+        if (lastAltitude !== null) {
+          const diff = tpData.altitude - lastAltitude;
+          if (diff > 0) elevationGained += diff;
+        }
+        lastAltitude = tpData.altitude;
+      }
+    });
+  });
+
+  const firstTp = rawTrackpoints[0];
+  const lastTp = rawTrackpoints[rawTrackpoints.length - 1];
+  let totalTime = 0;
+  if (firstTp && lastTp) {
+    totalTime = (new Date(lastTp.time).getTime() - new Date(firstTp.time).getTime()) / 1000;
+  }
+
+  // Generate continuous telemetry
+  const telemetry: any[] = [];
+  const samplingRate = Math.max(1, Math.floor(rawTrackpoints.length / 500));
+
+  for (let i = 0; i < rawTrackpoints.length; i += samplingRate) {
+    const tp = rawTrackpoints[i];
+    let pace = null;
+    const lookback = 10;
+    if (i >= lookback) {
+      const prevTp = rawTrackpoints[i - lookback];
+      const dDist = (tp.distance - prevTp.distance) / 1000; // km
+      const dTime = (new Date(tp.time).getTime() - new Date(prevTp.time).getTime()) / 1000 / 60; // mins
+      if (dDist > 0.001) {
+        pace = dTime / dDist;
+        if (pace > 20) pace = 20;
+      }
+    }
+
+    telemetry.push({
+      d: parseFloat((tp.distance / 1000).toFixed(3)),
+      p: pace ? parseFloat(pace.toFixed(2)) : null,
+      h: tp.heartRate || null,
+      c: tp.cadence || null,
+      w: tp.power || null,
+      a: tp.altitude || null
+    });
+  }
+
+  return {
+    id: new Date().toISOString(),
+    startTime: firstTp?.time || new Date().toISOString(),
+    totalTimeSeconds: Math.round(totalTime),
+    totalDistanceMeters: totalDistance,
+    avgHeartRate: heartRateCount > 0 ? Math.round(heartRateSum / heartRateCount) : undefined,
+    maxHeartRate: maxHeartRate > 0 ? Math.round(maxHeartRate) : undefined,
+    avgCadence: cadenceCount > 0 ? Math.round(cadenceSum / cadenceCount) : undefined,
+    avgPower: powerCount > 0 ? Math.round(powerSum / powerCount) : undefined,
+    elevationGained: Math.round(elevationGained),
+    trackpoints: rawTrackpoints,
+    telemetry: telemetry
+  };
+}
+
 export function parseTcx(xmlData: string): TcxActivity {
   const parser = new XMLParser({
     ignoreAttributes: false,

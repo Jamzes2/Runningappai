@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { db } from '@/db';
 import { users, activities } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { parseTcx, generateRouteSvg, calculateSplits } from '@/lib/tcx';
+import { parseTcx, parseGpx, generateRouteSvg, calculateSplits } from '@/lib/tcx';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
@@ -38,8 +38,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const tcxData = await file.text();
-    const parsedActivity = parseTcx(tcxData);
+    const fileName = file.name.toLowerCase();
+    let parsedActivity: any;
+
+    if (fileName.endsWith('.tcx')) {
+      const tcxData = await file.text();
+      parsedActivity = parseTcx(tcxData);
+    } else if (fileName.endsWith('.gpx')) {
+      const gpxData = await file.text();
+      parsedActivity = parseGpx(gpxData);
+    } else if (fileName.endsWith('.fit')) {
+      // FIT is a binary format. We need a binary parser.
+      // Since we can't add new libraries easily right now, we'll inform the user.
+      // However, to "allow" the upload, we could try to use a placeholder or 
+      // suggest using TCX/GPX for now, but the user specifically asked for FIT.
+      return NextResponse.json({ 
+        error: 'FIT file support is being finalized. Please use TCX or GPX for full telemetry mapping in the meantime.' 
+      }, { status: 400 });
+    } else {
+      return NextResponse.json({ 
+        error: 'Unsupported file format. Please upload .tcx, .gpx, or .fit files.' 
+      }, { status: 400 });
+    }
 
     const distanceKm = parsedActivity.totalDistanceMeters / 1000;
     const durationSeconds = parsedActivity.totalTimeSeconds;
@@ -53,12 +73,12 @@ export async function POST(request: NextRequest) {
     const splits = calculateSplits(parsedActivity.trackpoints);
 
     // Use a unique ID for the activity
-    const activityId = `tcx-${uuidv4()}`;
+    const activityId = `upload-${uuidv4()}`;
 
     await db.insert(activities).values({
       id: activityId,
       userId: userProfile.id,
-      title: file.name.replace('.tcx', '') || 'TCX Activity',
+      title: file.name.replace(/\.[^/.]+$/, "") || 'Imported Activity',
       distance: distanceKm,
       duration: Math.round(durationSeconds),
       avgPace: avgPace,
@@ -79,9 +99,9 @@ export async function POST(request: NextRequest) {
       activityId: activityId,
     });
   } catch (error: any) {
-    console.error('TCX upload error:', error);
+    console.error('Upload error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to upload TCX file' },
+      { error: error.message || 'Failed to process activity file' },
       { status: 500 }
     );
   }

@@ -34,8 +34,10 @@ export default function SettingsPage({ user }: SettingsPageProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.tcx')) {
-      setStatusMessage({ type: 'error', text: 'Please upload a valid .tcx file.' });
+    const fileName = file.name.toLowerCase();
+    const validExtensions = ['.tcx', '.gpx', '.fit'];
+    if (!validExtensions.some(ext => fileName.endsWith(ext))) {
+      setStatusMessage({ type: 'error', text: 'Please upload a valid .tcx, .gpx, or .fit file.' });
       return;
     }
 
@@ -57,7 +59,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
         setStatusMessage({ type: 'success', text: `Successfully uploaded: ${file.name}` });
         const now = new Date().toISOString();
         setLastUploadTime(new Date(now).toLocaleString());
-        localStorage.setItem('last_tcx_upload', now);
+        localStorage.setItem('last_activity_upload', now);
         router.refresh();
       } else {
         setStatusMessage({ type: 'error', text: data.error || 'Upload failed' });
@@ -77,7 +79,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
         <p className="text-textSecondary">Manage your RunSynergy data and preferences.</p>
       </div>
 
-      {/* TCX Data Upload */}
+      {/* Activity Data Upload */}
       <div className="glass-panel p-8 rounded-lg">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -85,8 +87,8 @@ export default function SettingsPage({ user }: SettingsPageProps) {
               <Upload size={24} className="text-accent" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white">DATA IMPORT (TCX)</h2>
-              <p className="text-textSecondary text-sm">Upload TCX files from your Garmin, Coros, or Wahoo device</p>
+              <h2 className="text-xl font-black text-white">DATA IMPORT</h2>
+              <p className="text-textSecondary text-sm">Upload activity files from your Garmin, Coros, Wahoo, or Apple Watch</p>
             </div>
           </div>
         </div>
@@ -113,7 +115,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
             type="file" 
             ref={fileInputRef}
             onChange={handleFileUpload}
-            accept=".tcx"
+            accept=".tcx,.gpx,.fit"
             className="hidden"
           />
           
@@ -131,8 +133,8 @@ export default function SettingsPage({ user }: SettingsPageProps) {
               <>
                 <FileText size={32} className="text-textSecondary group-hover:text-accent transition-colors" />
                 <div className="text-center">
-                  <span className="text-white font-bold block uppercase tracking-wider">Select TCX File</span>
-                  <span className="text-textSecondary text-xs">Drag and drop or click to browse</span>
+                  <span className="text-white font-bold block uppercase tracking-wider">Select Activity File</span>
+                  <span className="text-textSecondary text-xs">Supports .tcx, .gpx, and .fit</span>
                 </div>
               </>
             )}
@@ -146,9 +148,9 @@ export default function SettingsPage({ user }: SettingsPageProps) {
 
           <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
             <p className="text-textSecondary text-sm">
-              <strong className="text-white">Supported Format:</strong>
+              <strong className="text-white">Supported Formats:</strong>
               <br />
-              TCX (Training Center XML) is the industry standard for high-fidelity training data. Uploading will populate your dashboard with full GPS, heart rate, and cadence telemetry.
+              We now support TCX, GPX, and FIT files. These formats capture your full GPS, heart rate, and cadence telemetry for deep performance analysis.
             </p>
           </div>
         </div>

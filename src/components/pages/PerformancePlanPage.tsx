@@ -203,7 +203,7 @@ export default function PerformancePlanPage() {
               <div className="relative">
                 <input 
                   type="file" 
-                  accept=".gpx,.tcx"
+                  accept=".gpx,.tcx,.fit"
                   className="hidden" 
                   id="elevation-upload"
                   onChange={handleFileUpload}
