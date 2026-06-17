@@ -1,5 +1,5 @@
 import { db } from '@/db';
-import { activities, users } from '@/db/schema';
+import { activities, users, performancePlans } from '@/db/schema';
 import { createClient } from '@/lib/supabase/server';
 import { eq, desc, and, gte } from 'drizzle-orm';
 
@@ -8,7 +8,7 @@ export async function getDashboardData() {
   const { data: { user: authUser } } = await supabase.auth.getUser();
 
   if (!authUser || !db) {
-    return { user: null, recentActivities: [], stats: null, weeklyVolume: [] };
+    return { user: null, recentActivities: [], stats: null, weeklyVolume: [], performancePlan: null };
   }
 
   try {
@@ -24,8 +24,10 @@ export async function getDashboardData() {
       return { 
         user: { fullName: authUser.email?.split('@')[0] || 'Athlete', email: authUser.email }, 
         recentActivities: [], 
+        allActivities: [],
         stats: null,
-        weeklyVolume: []
+        weeklyVolume: [],
+        performancePlan: null
       };
     }
 
@@ -35,6 +37,15 @@ export async function getDashboardData() {
       .from(activities)
       .where(eq(activities.userId, userProfile.id))
       .orderBy(desc(activities.date));
+
+    // Get performance plan
+    const plans = await db
+      .select()
+      .from(performancePlans)
+      .where(eq(performancePlans.userId, userProfile.id))
+      .orderBy(desc(performancePlans.updatedAt))
+      .limit(1);
+    const performancePlan = plans[0] || null;
 
     // Get recent activities (top 5)
     const recentActivities = allActivities.slice(0, 5);
@@ -76,7 +87,8 @@ export async function getDashboardData() {
         weeklyDistance: parseFloat(totalDistance.toFixed(2)),
         activityCount: weeklyActivities.length,
       },
-      weeklyVolume
+      weeklyVolume,
+      performancePlan
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);

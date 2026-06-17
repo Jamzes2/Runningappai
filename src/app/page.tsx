@@ -12,6 +12,7 @@ export default async function Home() {
       initialAllActivities={data.allActivities}
       initialStats={data.stats}
       initialWeeklyVolume={data.weeklyVolume}
+      initialPerformancePlan={data.performancePlan}
     />
   );
 }

@@ -85,16 +85,35 @@ export async function POST(request: NextRequest) {
       1. Analyze their current fitness (pace, HR, volume) from recent runs to set appropriate baseline intensities.
       2. MANDATORY: Provide a day-by-day calendar starting from TODAY until the RACE DATE (${raceDate}).
       3. The plan MUST conclude with the race itself on ${raceDay}, ${raceDate}.
-      4. Use a clear table format for the daily schedule.
-      5. For each day, specify:
-         - Workout Type (e.g., Interval, Tempo, Easy, Long, Rest)
-         - Duration/Distance
-         - Target Intensity (Pace or HR Zone)
-         - Specific instructions (e.g., "4x800m at 5k pace with 90s rest")
+      4. RETURN THE PLAN IN THE FOLLOWING JSON FORMAT ONLY:
+      {
+        "summary": "Short coach's summary of the training strategy",
+        "weeks": [
+          {
+            "weekNumber": 1,
+            "startDate": "YYYY-MM-DD",
+            "endDate": "YYYY-MM-DD",
+            "days": [
+              {
+                "date": "YYYY-MM-DD",
+                "dayName": "Monday",
+                "workoutType": "Interval|Tempo|Easy|Long|Rest|Strength",
+                "title": "Short title",
+                "description": "Detailed instructions",
+                "distance": "e.g. 10km (numeric value preferred followed by km)",
+                "duration": "e.g. 60 min",
+                "targetPace": "e.g. 4:30 min/km",
+                "targetHR": "e.g. 150-160 bpm",
+                "intensity": "Low|Moderate|High|Very High"
+              }
+            ]
+          }
+        ]
+      }
+      5. Ensure the JSON is valid and contains no other text.
+      6. For "distance", always provide a string like "10km" or "5.5km" if there is a distance component.
       6. If elevation data was provided, ensure the plan includes climbing or hill repeats proportional to the race difficulty.
       7. Include 2-3 sessions of Strength Training per week.
-      8. Format the output using clean HTML (<h3>, <table>, <tr>, <td>, <ul>, <li>, <strong>). 
-      9. Ensure the table has borders or clear spacing for readability.
     `;
 
     // Call OpenRouter/Gemini
@@ -110,21 +129,22 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           model: 'google/gemini-3.5-flash',
-          messages: [{ role: 'user', content: prompt }]
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: "json_object" }
         })
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`AI API error: ${errorText}`);
-        generatedPlan = getFallbackPlan(raceName, raceGoal);
+        generatedPlan = JSON.stringify(getFallbackPlan(raceName, raceGoal));
       } else {
         const aiData = await response.json();
-        generatedPlan = aiData.choices?.[0]?.message?.content || getFallbackPlan(raceName, raceGoal);
+        generatedPlan = aiData.choices?.[0]?.message?.content || JSON.stringify(getFallbackPlan(raceName, raceGoal));
       }
     } catch (apiErr) {
       console.error('API Call failed:', apiErr);
-      generatedPlan = getFallbackPlan(raceName, raceGoal);
+      generatedPlan = JSON.stringify(getFallbackPlan(raceName, raceGoal));
     }
 
     // Save generated plan
@@ -164,57 +184,23 @@ export async function POST(request: NextRequest) {
 }
 
 function getFallbackPlan(raceName: string, raceGoal: string) {
-  return `
-    <h3>Training Strategy for ${raceName}</h3>
-    <p>We are currently experiencing high demand on our AI synthesis engine. While we finalize your elite telemetry analysis, here is your baseline high-performance weekly schedule to hit your <strong>${raceGoal}</strong> target:</p>
-    
-    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-      <thead>
-        <tr style="background-color: rgba(255,255,255,0.05);">
-          <th style="padding: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: left;">Day</th>
-          <th style="padding: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: left;">Workout</th>
-          <th style="padding: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: left;">Intensity</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Monday</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Active Recovery / Mobility</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Very Low</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Tuesday</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Intervals: 8x400m</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">5k Pace</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Wednesday</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Easy Aerobic (45-60 min)</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Zone 2</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Thursday</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Tempo Run: 20 min Steady</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Half Marathon Pace</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Friday</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Strength Training (Lower Body)</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Moderate</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Saturday</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Long Run (90-120 min)</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Zone 2 (Progressive)</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Sunday</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Full Rest / Mobility</td>
-          <td style="padding: 12px; border: 1px solid rgba(255,255,255,0.1);">-</td>
-        </tr>
-      </tbody>
-    </table>
-    
-    <p><em>Note: This is a fallback template. Please try regenerating in a few minutes for your full, date-specific schedule.</em></p>
-  `;
+  return {
+    summary: `Training Strategy for ${raceName}. Focus on hitting your ${raceGoal} target.`,
+    weeks: [
+      {
+        weekNumber: 1,
+        startDate: new Date().toISOString().split('T')[0],
+        days: [
+          { dayName: 'Monday', workoutType: 'Rest', title: 'Active Recovery', description: 'Mobility and light stretching.', duration: '20 min', intensity: 'Low' },
+          { dayName: 'Tuesday', workoutType: 'Interval', title: 'Speed Work', description: '8x400m at 5k pace with 90s recovery.', distance: '8km', targetPace: '5k Pace', intensity: 'High' },
+          { dayName: 'Wednesday', workoutType: 'Easy', title: 'Aerobic Base', description: 'Steady run in Zone 2.', distance: '10km', duration: '50 min', intensity: 'Moderate' },
+          { dayName: 'Thursday', workoutType: 'Tempo', title: 'Threshold Run', description: '20 min steady at Half Marathon pace.', distance: '12km', targetPace: 'HM Pace', intensity: 'High' },
+          { dayName: 'Friday', workoutType: 'Strength', title: 'Lower Body', description: 'Focus on glutes, hamstrings, and calves.', duration: '45 min', intensity: 'Moderate' },
+          { dayName: 'Saturday', workoutType: 'Long', title: 'Endurance Build', description: 'Progressive long run, finishing last 2km at race pace.', distance: '18km', duration: '100 min', intensity: 'High' },
+          { dayName: 'Sunday', workoutType: 'Rest', title: 'Full Recovery', description: 'Rest day.', intensity: 'Low' }
+        ]
+      }
+    ]
+  };
 }
+

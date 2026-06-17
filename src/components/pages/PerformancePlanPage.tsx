@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Target, Award, Sparkles, Send, Clock, BookOpen, UserCheck, RefreshCw } from 'lucide-react';
+import { Calendar, Target, Award, Sparkles, Clock, BookOpen, RefreshCw } from 'lucide-react';
 
 export default function PerformancePlanPage() {
   const [loading, setLoading] = useState(false);
@@ -56,10 +56,7 @@ export default function PerformancePlanPage() {
 
     setUploading(true);
     try {
-      // For now, we'll parse basic elevation if it's a TCX/GPX or just simulate the profile
-      // In a real app, we'd send to a parsing utility
-      const text = await file.text();
-      // Simple mock of elevation profile sampling
+      // Mock of elevation profile sampling
       const sampledProfile = [100, 120, 150, 140, 180, 200, 190, 210, 250, 240]; 
       const data = {
         fileName: file.name,
@@ -114,6 +111,8 @@ export default function PerformancePlanPage() {
       
       if (res.ok) {
         setPlan(data.plan);
+        // Refresh the page data to update the calendar
+        window.location.reload();
       } else {
         console.error('API Error:', data.error);
         alert(data.error || 'Failed to generate plan. Please try again.');
@@ -138,43 +137,48 @@ export default function PerformancePlanPage() {
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-130px)] animate-[fadeIn_0.4s_ease-out_forwards]">
       
       {/* LEFT: RACE DETAILS FORM */}
-      <div className="w-full lg:w-[350px] flex flex-col gap-4 h-full overflow-y-auto pr-1 custom-scrollbar shrink-0 pb-4">
-        <div className="glass-panel p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Target size={18} className="text-accent" />
-            <h2 className="text-lg font-black text-white uppercase tracking-tight">Race Objectives</h2>
+      <div className="w-full lg:w-[450px] flex flex-col gap-4 h-full overflow-y-auto pr-1 custom-scrollbar shrink-0 pb-4 mx-auto">
+        <div className="glass-panel p-8">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="icon-frame-accent">
+              <Target size={20} className="text-accent" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white uppercase tracking-tight">Race Objectives</h2>
+              <p className="text-[0.65rem] text-textSecondary font-bold tracking-widest uppercase">Synthesize Your Elite Protocol</p>
+            </div>
           </div>
 
-          <form onSubmit={handleSaveDetails} className="space-y-4">
+          <form onSubmit={handleSaveDetails} className="space-y-6">
             <div>
-              <label className="text-[0.6rem] font-black text-textSecondary uppercase tracking-widest block mb-1.5">Race Name</label>
+              <label className="text-[0.65rem] font-black text-textSecondary uppercase tracking-[0.2em] block mb-2">Race Name</label>
               <input 
                 type="text" 
                 placeholder="e.g. London Marathon"
-                className="glass-input w-full !py-2 !text-sm"
+                className="glass-input w-full"
                 value={raceDetails.raceName}
                 onChange={e => setRaceDetails({...raceDetails, raceName: e.target.value})}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="text-[0.6rem] font-black text-textSecondary uppercase tracking-widest block mb-1.5">Distance</label>
+                <label className="text-[0.65rem] font-black text-textSecondary uppercase tracking-[0.2em] block mb-2">Distance</label>
                 <input 
                   type="text" 
                   placeholder="e.g. 42.2km"
-                  className="glass-input w-full !py-2 !text-sm"
+                  className="glass-input w-full"
                   value={raceDetails.raceDistance}
                   onChange={e => setRaceDetails({...raceDetails, raceDistance: e.target.value})}
                 />
               </div>
               <div>
-                <label className="text-[0.6rem] font-black text-textSecondary uppercase tracking-widest block mb-1.5">Race Date</label>
+                <label className="text-[0.65rem] font-black text-textSecondary uppercase tracking-[0.2em] block mb-2">Race Date</label>
                 <div className="relative">
-                  <Calendar size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary" />
+                  <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-textSecondary" />
                   <input 
                     type="date" 
-                    className="glass-input w-full pl-8 !py-2 !text-sm"
+                    className="glass-input w-full pl-10"
                     value={raceDetails.raceDate}
                     onChange={e => setRaceDetails({...raceDetails, raceDate: e.target.value})}
                   />
@@ -183,11 +187,11 @@ export default function PerformancePlanPage() {
             </div>
 
             <div>
-              <label className="text-[0.6rem] font-black text-textSecondary uppercase tracking-widest block mb-1.5">Primary Goal</label>
+              <label className="text-[0.65rem] font-black text-textSecondary uppercase tracking-[0.2em] block mb-2">Primary Goal</label>
               <input 
                 type="text" 
                 placeholder="e.g. Sub 3:30:00"
-                className="glass-input w-full !py-2 !text-sm"
+                className="glass-input w-full"
                 value={raceDetails.raceGoal}
                 onChange={e => setRaceDetails({...raceDetails, raceGoal: e.target.value})}
               />
@@ -195,7 +199,7 @@ export default function PerformancePlanPage() {
 
             {/* Elevation Upload */}
             <div>
-              <label className="text-[0.6rem] font-black text-textSecondary uppercase tracking-widest block mb-1.5">Elevation File (GPX/TCX)</label>
+              <label className="text-[0.65rem] font-black text-textSecondary uppercase tracking-[0.2em] block mb-2">Course Elevation (GPX/TCX)</label>
               <div className="relative">
                 <input 
                   type="file" 
@@ -206,125 +210,57 @@ export default function PerformancePlanPage() {
                 />
                 <label 
                   htmlFor="elevation-upload"
-                  className="glass-input w-full flex items-center justify-center gap-2 cursor-pointer hover:bg-white/5 transition-colors !py-2.5"
+                  className="glass-input w-full flex items-center justify-center gap-3 cursor-pointer hover:bg-white/5 transition-colors py-4 border-dashed border-white/10"
                 >
-                  <Award size={14} className={elevationData ? "text-accent" : "text-textSecondary"} />
-                  <span className="text-[0.7rem] font-bold">{elevationData ? `Loaded: ${elevationData.fileName}` : 'Upload Elevation'}</span>
+                  <Award size={18} className={elevationData ? "text-accent" : "text-textSecondary"} />
+                  <span className="text-[0.75rem] font-bold tracking-tight">{elevationData ? `Loaded: ${elevationData.fileName}` : 'Upload Elevation Data'}</span>
                 </label>
               </div>
             </div>
 
             <div>
-              <label className="text-[0.6rem] font-black text-textSecondary uppercase tracking-widest block mb-1.5">Personal Notes</label>
+              <label className="text-[0.65rem] font-black text-textSecondary uppercase tracking-[0.2em] block mb-2">Personal Training Notes</label>
               <textarea 
-                placeholder="Specific requirements..."
-                className="glass-input w-full min-h-[60px] !py-2 !text-sm"
+                placeholder="e.g. I prefer strength training on Wednesdays, avoid hills on Fridays..."
+                className="glass-input w-full min-h-[100px]"
                 value={raceDetails.personalNotes}
                 onChange={e => setRaceDetails({...raceDetails, personalNotes: e.target.value})}
               ></textarea>
             </div>
 
-            <div className="pt-2 flex gap-3">
-              <button 
-                type="submit"
-                disabled={loading || uploading}
-                className="flex-1 btn-pill btn-pill-dark !py-2.5 !text-xs"
-              >
-                Save
-              </button>
+            <div className="pt-4 flex flex-col gap-3">
               <button 
                 type="button"
                 onClick={handleGeneratePlan}
                 disabled={generating || loading || uploading}
-                className="flex-[1.5] btn-pill btn-pill-primary !py-2.5 !text-xs group"
+                className="w-full btn-pill btn-pill-primary !py-4 group relative overflow-hidden"
               >
                 {generating ? (
-                  <RefreshCw size={14} className="animate-spin" />
+                  <RefreshCw size={18} className="animate-spin" />
                 ) : (
-                  <Sparkles size={14} className="group-hover:animate-pulse" />
+                  <Sparkles size={18} className="group-hover:animate-pulse" />
                 )}
-                <span>{generating ? 'ANALYZING...' : 'GENERATE PLAN'}</span>
+                <span className="font-black tracking-widest uppercase">{generating ? 'SYNTESIZING PROTOCOL...' : 'GENERATE PERFORMANCE PLAN'}</span>
               </button>
+              
+              {plan?.generatedPlan && (
+                <p className="text-[0.65rem] text-center text-accent font-black tracking-widest uppercase mt-2 animate-pulse">
+                  Protocol Active. View your schedule in the Calendar.
+                </p>
+              )}
             </div>
           </form>
         </div>
 
         {/* INFO CARDS */}
-        <div className="glass-panel p-4 shrink-0">
-          <div className="flex items-center gap-2 mb-2">
-            <BookOpen size={14} className="text-accent" />
-            <h4 className="text-[0.7rem] font-extrabold text-white uppercase tracking-wider">How it works</h4>
+        <div className="glass-panel p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <BookOpen size={16} className="text-accent" />
+            <h4 className="text-[0.75rem] font-extrabold text-white uppercase tracking-wider">The Synergy Engine</h4>
           </div>
-          <p className="text-[0.65rem] text-textSecondary leading-relaxed">
-            Our AI engine synthesizes your **training history**, **Coach AI feedback**, and uploaded **course elevation** to draft a specialized schedule.
+          <p className="text-[0.7rem] text-textSecondary leading-relaxed">
+            Our AI engine analyzes your **telemetry history**, **HRV patterns**, and **course elevation** to synthesize a custom training protocol. Once generated, your sessions are automatically synced to your calendar.
           </p>
-        </div>
-      </div>
-
-      {/* RIGHT: GENERATED PLAN DISPLAY */}
-      <div className="flex-1 min-w-0 h-full pb-4">
-        <div className="glass-panel h-full flex flex-col overflow-hidden border-accent/20 bg-black/40">
-          <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
-            {!plan?.generatedPlan && !generating ? (
-              <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-                <Sparkles size={64} className="mb-6 text-textSecondary/50" />
-                <h3 className="text-2xl font-black text-white mb-3 uppercase italic tracking-tighter">Awaiting Telemetry...</h3>
-                <p className="text-textSecondary max-w-sm text-sm">
-                  Complete your race objectives on the left to synthesize your elite performance protocol.
-                </p>
-              </div>
-            ) : generating ? (
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <div className="relative mb-8">
-                  <div className="w-20 h-20 border-2 border-accent/20 rounded-full animate-ping absolute inset-0"></div>
-                  <div className="w-20 h-20 border-2 border-accent rounded-full flex items-center justify-center bg-accent/5">
-                    <Sparkles size={32} className="text-accent animate-pulse" />
-                  </div>
-                </div>
-                <h3 className="text-2xl font-black text-white mb-3 uppercase tracking-tighter italic">Synthesizing Protocol...</h3>
-                <p className="text-textSecondary max-w-xs text-sm">
-                  Calculating heart rate decoupling, anaerobic threshold, and race-specific volume metrics...
-                </p>
-              </div>
-            ) : (
-              <div className="animate-[fadeIn_0.5s_ease-out]">
-                <div className="flex justify-between items-start mb-8 pb-8 border-b border-white/10">
-                  <div>
-                    <span className="text-[0.7rem] font-black text-accent tracking-[0.3em] uppercase block mb-1">Elite Performance Protocol</span>
-                    <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">{plan.raceName}</h2>
-                    <div className="flex items-center gap-6 mt-4">
-                      <div className="flex items-center gap-2 text-textSecondary text-[0.75rem] font-bold uppercase tracking-wider">
-                        <Clock size={14} className="text-accent" />
-                        <span>Duration: To Race Day</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-textSecondary text-[0.75rem] font-bold uppercase tracking-wider">
-                        <UserCheck size={14} className="text-accent" />
-                        <span>AI-Optimized Schedule</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right glass-panel !bg-white/5 px-6 py-4 border-accent/30">
-                    <span className="text-[0.65rem] font-black text-textMuted uppercase tracking-[0.2em] block mb-1">Target Pace/Goal</span>
-                    <p className="text-2xl font-black text-accent italic uppercase tracking-tighter">{plan.raceGoal}</p>
-                  </div>
-                </div>
-
-                <div className="prose prose-invert max-w-none 
-                  prose-h3:text-xl prose-h3:font-black prose-h3:text-white prose-h3:uppercase prose-h3:tracking-tighter prose-h3:mb-6 prose-h3:mt-10 prose-h3:italic
-                  prose-p:text-[0.95rem] prose-p:text-textSecondary prose-p:leading-relaxed prose-p:mb-6
-                  prose-strong:text-accent prose-strong:font-extrabold
-                  prose-table:my-8 prose-table:border prose-table:border-white/10 prose-table:rounded-2xl prose-table:overflow-hidden prose-table:shadow-2xl prose-table:shadow-black/50 prose-table:bg-transparent
-                  prose-thead:bg-white/5
-                  prose-tr:bg-transparent prose-tr:border-white/5
-                  prose-th:text-accent prose-th:text-[0.7rem] prose-th:font-black prose-th:uppercase prose-th:tracking-[0.2em] prose-th:p-5 prose-th:border-b prose-th:border-white/10
-                  prose-td:p-5 prose-td:text-[0.8rem] prose-td:text-textSecondary prose-td:border-b prose-td:border-white/5 prose-td:align-top prose-td:bg-transparent
-                  prose-ul:my-6 prose-li:text-[0.9rem] prose-li:text-textSecondary prose-li:mb-3 prose-li:marker:text-accent
-                ">
-                  <div dangerouslySetInnerHTML={{ __html: plan.generatedPlan.replace(/\n/g, '<br />') }} />
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 

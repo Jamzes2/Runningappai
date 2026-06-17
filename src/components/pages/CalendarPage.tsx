@@ -17,10 +17,11 @@ import {
 
 interface CalendarPageProps {
   initialActivities?: any[];
+  plannedActivities?: any[];
   onNavigateToActivity?: (id: string | number) => void;
 }
 
-export default function CalendarPage({ initialActivities = [], onNavigateToActivity }: CalendarPageProps) {
+export default function CalendarPage({ initialActivities = [], plannedActivities = [], onNavigateToActivity }: CalendarPageProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -57,8 +58,17 @@ export default function CalendarPage({ initialActivities = [], onNavigateToActiv
     for (let i = 1; i <= totalDays; i++) {
       const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
       
-      // Find activities for this day
+      // Find completed activities for this day
       const dayActivities = initialActivities.filter(act => {
+        const actDate = new Date(act.date);
+        return actDate.getFullYear() === currentYear && 
+               actDate.getMonth() === currentMonth && 
+               actDate.getDate() === i;
+      });
+
+      // Find planned activities for this day
+      const dayPlanned = plannedActivities.filter(act => {
+        if (!act.date) return false;
         const actDate = new Date(act.date);
         return actDate.getFullYear() === currentYear && 
                actDate.getMonth() === currentMonth && 
@@ -69,12 +79,13 @@ export default function CalendarPage({ initialActivities = [], onNavigateToActiv
         day: i,
         dateStr,
         activities: dayActivities,
-        hasActivity: dayActivities.length > 0
+        planned: dayPlanned,
+        hasActivity: dayActivities.length > 0 || dayPlanned.length > 0
       });
     }
 
     return { days: daysArray, padding: firstDayOfWeek };
-  }, [currentMonth, currentYear, initialActivities]);
+  }, [currentMonth, currentYear, initialActivities, plannedActivities]);
 
   // Calculate monthly summary
   const summary = useMemo(() => {
@@ -118,14 +129,17 @@ export default function CalendarPage({ initialActivities = [], onNavigateToActiv
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
           <div className="glass-panel w-full max-w-[800px] max-h-[90vh] overflow-y-auto flex flex-col p-0 shadow-[0_0_50px_rgba(0,0,0,0.5)] border-accent/20">
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-white/10">
+            <div className={`flex justify-between items-center p-6 border-b border-white/10 ${selectedActivity.isPlanned ? 'bg-blue-500/5' : ''}`}>
               <div className="flex items-center gap-3">
-                <div className="icon-frame-accent !w-10 !h-10">
-                  <Activity size={20} />
+                <div className={`icon-frame-${selectedActivity.isPlanned ? 'blue' : 'accent'} !w-10 !h-10`}>
+                  <Activity size={20} className={selectedActivity.isPlanned ? 'text-blue-400' : 'text-accent'} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-white">{selectedActivity.title}</h2>
-                  <p className="text-xs text-textSecondary font-semibold uppercase tracking-wider">{formatDate(selectedActivity.date)}</p>
+                  <h2 className="text-xl font-black text-white">{selectedActivity.title || (selectedActivity.isPlanned ? `${selectedActivity.workoutType} Session` : 'Run')}</h2>
+                  <p className="text-xs text-textSecondary font-semibold uppercase tracking-wider">
+                    {selectedActivity.date ? formatDate(selectedActivity.date) : (selectedActivity.dayName || 'Planned Session')}
+                    {selectedActivity.isPlanned && <span className="ml-2 text-blue-400 font-black tracking-widest">[PLANNED]</span>}
+                  </p>
                 </div>
               </div>
               <button 
@@ -142,72 +156,109 @@ export default function CalendarPage({ initialActivities = [], onNavigateToActiv
               <div className="flex flex-col gap-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-white/[0.02] border border-borderDark rounded-xl">
-                    <span className="text-[0.62rem] text-textSecondary font-bold block mb-1">DISTANCE</span>
-                    <p className="text-2xl font-black text-white">{selectedActivity.distance.toFixed(2)} <span className="text-sm font-medium text-textSecondary">km</span></p>
+                    <span className="text-[0.62rem] text-textSecondary font-bold block mb-1">TARGET DISTANCE</span>
+                    <p className="text-2xl font-black text-white">
+                      {selectedActivity.isPlanned 
+                        ? (selectedActivity.distance || '--') 
+                        : selectedActivity.distance?.toFixed(2)} 
+                      <span className="text-sm font-medium text-textSecondary"> km</span>
+                    </p>
                   </div>
                   <div className="p-4 bg-white/[0.02] border border-borderDark rounded-xl">
-                    <span className="text-[0.62rem] text-textSecondary font-bold block mb-1">AVG PACE</span>
-                    <p className="text-2xl font-black text-accent">{selectedActivity.avgPace} <span className="text-sm font-medium text-textSecondary">/km</span></p>
+                    <span className="text-[0.62rem] text-textSecondary font-bold block mb-1">TARGET PACE</span>
+                    <p className={`text-2xl font-black ${selectedActivity.isPlanned ? 'text-blue-400' : 'text-accent'}`}>
+                      {selectedActivity.isPlanned ? (selectedActivity.targetPace || '--') : selectedActivity.avgPace} 
+                      <span className="text-sm font-medium text-textSecondary"> /km</span>
+                    </p>
                   </div>
                   <div className="p-4 bg-white/[0.02] border border-borderDark rounded-xl">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Clock size={12} className="text-textSecondary" />
                       <span className="text-[0.62rem] text-textSecondary font-bold block">DURATION</span>
                     </div>
-                    <p className="text-2xl font-black text-white">{formatDuration(selectedActivity.duration)}</p>
+                    <p className="text-2xl font-black text-white">
+                      {selectedActivity.isPlanned 
+                        ? (selectedActivity.duration || '--') 
+                        : formatDuration(selectedActivity.duration)}
+                    </p>
                   </div>
                   <div className="p-4 bg-white/[0.02] border border-borderDark rounded-xl">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Activity size={12} className="text-textSecondary" />
-                      <span className="text-[0.62rem] text-textSecondary font-bold block">AVG HEART RATE</span>
+                      <span className="text-[0.62rem] text-textSecondary font-bold block">INTENSITY</span>
                     </div>
-                    <p className="text-2xl font-black text-white">{selectedActivity.avgHr || '--'} <span className="text-sm font-medium text-textSecondary">bpm</span></p>
+                    <p className="text-2xl font-black text-white">
+                      {selectedActivity.isPlanned 
+                        ? (selectedActivity.intensity || 'MODERATE') 
+                        : (selectedActivity.avgHr ? `${selectedActivity.avgHr} bpm` : '--')}
+                    </p>
                   </div>
                 </div>
 
-                <div className="p-5 bg-accent/5 border border-accent/20 rounded-xl">
+                <div className={`p-5 border rounded-xl ${selectedActivity.isPlanned ? 'bg-blue-500/5 border-blue-500/20' : 'bg-accent/5 border-accent/20'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Sparkles size={16} className="text-accent" />
-                    <h4 className="text-[0.85rem] font-black text-white tracking-wide uppercase">AI COACH INSIGHT</h4>
+                    <Sparkles size={16} className={selectedActivity.isPlanned ? 'text-blue-400' : 'text-accent'} />
+                    <h4 className="text-[0.85rem] font-black text-white tracking-wide uppercase">
+                      {selectedActivity.isPlanned ? 'COACH INSTRUCTIONS' : 'AI COACH INSIGHT'}
+                    </h4>
                   </div>
                   <p className="text-sm text-textSecondary leading-relaxed italic">
-                    {selectedActivity.aiSummary || "This run shows excellent aerobic efficiency. Your pace was very stable relative to your heart rate compared to your last tempo session."}
+                    {selectedActivity.isPlanned 
+                      ? selectedActivity.description 
+                      : (selectedActivity.aiSummary || "This run shows excellent aerobic efficiency. Your pace was very stable relative to your heart rate.")}
                   </p>
                 </div>
               </div>
 
-              {/* Right Column: Map & Route */}
+              {/* Right Column: Visual */}
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-2">
-                  <MapPin size={14} className="text-accent" />
-                  <span className="text-[0.75rem] text-textSecondary font-bold tracking-wider uppercase">ROUTE VISUALIZATION</span>
+                  <Zap size={14} className={selectedActivity.isPlanned ? 'text-blue-400' : 'text-accent'} />
+                  <span className="text-[0.75rem] text-textSecondary font-bold tracking-wider uppercase">
+                    {selectedActivity.isPlanned ? 'SESSION FOCUS' : 'ROUTE VISUALIZATION'}
+                  </span>
                 </div>
                 <div className="flex-1 min-h-[250px] bg-gradient-to-b from-[#1b1b1b] to-[#080808] border border-borderDark rounded-2xl relative overflow-hidden flex items-center justify-center">
                   <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-                  {selectedActivity.routeSvg ? (
-                    <svg width="90%" height="90%" className="relative z-10">
-                      <path 
-                        d={selectedActivity.routeSvg} 
-                        fill="none" 
-                        stroke="var(--accent)" 
-                        strokeWidth="5" 
-                        strokeLinecap="round"
-                        style={{
-                          filter: 'drop-shadow(0px 0px 12px rgba(196, 255, 0, 0.4))'
-                        }}
-                      />
-                    </svg>
-                  ) : (
-                    <div className="text-textSecondary text-sm z-10 flex flex-col items-center gap-2">
-                      <MapPin size={24} className="opacity-20" />
-                      <span>GPS route data unavailable</span>
+                  
+                  {selectedActivity.isPlanned ? (
+                    <div className="relative z-10 flex flex-col items-center text-center p-8">
+                      <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 border-2 ${selectedActivity.workoutType?.toLowerCase() === 'long' ? 'border-blue-500 bg-blue-500/10' : 'border-accent bg-accent/10'}`}>
+                        <Zap size={32} className={selectedActivity.workoutType?.toLowerCase() === 'long' ? 'text-blue-400' : 'text-accent'} />
+                      </div>
+                      <h4 className="text-xl font-black text-white uppercase italic tracking-tighter mb-2">{selectedActivity.workoutType} SESSION</h4>
+                      <p className="text-xs text-textSecondary uppercase font-bold tracking-widest">{selectedActivity.title}</p>
                     </div>
+                  ) : (
+                    <>
+                      {selectedActivity.routeSvg ? (
+                        <svg width="90%" height="90%" className="relative z-10">
+                          <path 
+                            d={selectedActivity.routeSvg} 
+                            fill="none" 
+                            stroke="var(--accent)" 
+                            strokeWidth="5" 
+                            strokeLinecap="round"
+                            style={{
+                              filter: 'drop-shadow(0px 0px 12px rgba(196, 255, 0, 0.4))'
+                            }}
+                          />
+                        </svg>
+                      ) : (
+                        <div className="text-textSecondary text-sm z-10 flex flex-col items-center gap-2">
+                          <MapPin size={24} className="opacity-20" />
+                          <span>GPS route data unavailable</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
-                <div className="flex justify-between items-center text-[0.65rem] text-textMuted px-1">
-                  <span className="font-bold">ELEVATION GAIN: {selectedActivity.elevationGained || 0}m</span>
-                  <span className="font-bold">CADENCE: {selectedActivity.avgCadence || '--'}spm</span>
-                </div>
+                {!selectedActivity.isPlanned && (
+                  <div className="flex justify-between items-center text-[0.65rem] text-textMuted px-1">
+                    <span className="font-bold">ELEVATION GAIN: {selectedActivity.elevationGained || 0}m</span>
+                    <span className="font-bold">CADENCE: {selectedActivity.avgCadence || '--'}spm</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -219,16 +270,18 @@ export default function CalendarPage({ initialActivities = [], onNavigateToActiv
               >
                 Close View
               </button>
-              <button 
-                onClick={() => {
-                  if (onNavigateToActivity) {
-                    onNavigateToActivity(selectedActivity.id);
-                  }
-                }}
-                className="btn-pill btn-pill-primary"
-              >
-                Full Performance Report
-              </button>
+              {!selectedActivity.isPlanned && (
+                <button 
+                  onClick={() => {
+                    if (onNavigateToActivity) {
+                      onNavigateToActivity(selectedActivity.id);
+                    }
+                  }}
+                  className="btn-pill btn-pill-primary"
+                >
+                  Full Performance Report
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -271,6 +324,8 @@ export default function CalendarPage({ initialActivities = [], onNavigateToActiv
             {/* Actual Days */}
             {days.map(item => {
               const isToday = new Date().toDateString() === new Date(currentYear, currentMonth, item.day).toDateString();
+              const hasCompleted = item.activities.length > 0;
+              const hasPlanned = item.planned.length > 0;
               
               return (
                 <div 
@@ -278,36 +333,54 @@ export default function CalendarPage({ initialActivities = [], onNavigateToActiv
                   className={`p-2 min-h-[80px] rounded-xl flex flex-col justify-between cursor-pointer border-2 transition-all hover:border-accent/40 ${
                     isToday 
                       ? 'border-accent' 
-                      : item.hasActivity 
-                        ? 'bg-accent/[0.02] border-accent/15' 
-                        : 'bg-white/[0.005] border-borderDark'
+                      : hasCompleted
+                        ? 'bg-accent/[0.02] border-accent/15'
+                        : hasPlanned
+                          ? 'bg-blue-500/5 border-blue-500/10'
+                          : 'bg-white/[0.005] border-borderDark'
                   }`}
                 >
                   <span className={`text-[0.75rem] font-extrabold ${
-                    item.hasActivity ? 'text-accent' : 'text-textSecondary'
+                    hasCompleted ? 'text-accent' : hasPlanned ? 'text-blue-400' : 'text-textSecondary'
                   }`}>
                     {item.day}
                   </span>
                   
-                  {item.hasActivity && (
-                    <div className="mt-1 flex flex-col gap-1">
-                      {item.activities.map((act: any, idx: number) => (
-                        <div 
-                          key={idx} 
-                          className="mb-1 last:mb-0 p-1 rounded-md hover:bg-accent/10 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedActivity(act);
-                          }}
-                        >
-                          <p className="text-[0.75rem] font-extrabold text-white">
-                            {act.distance ? `${act.distance.toFixed(2)} km` : 'Completed'}
-                          </p>
-                          <p className="text-[0.55rem] text-textSecondary truncate">{act.title || 'Activity'}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="mt-1 flex flex-col gap-1">
+                    {/* Completed Activities */}
+                    {item.activities.map((act: any, idx: number) => (
+                      <div 
+                        key={`completed-${idx}`} 
+                        className="mb-1 last:mb-0 p-1 rounded-md hover:bg-accent/10 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedActivity(act);
+                        }}
+                      >
+                        <p className="text-[0.65rem] font-black text-white">
+                          {act.distance ? `${act.distance.toFixed(1)}km` : 'Done'}
+                        </p>
+                        <p className="text-[0.5rem] text-textSecondary truncate">{act.title || 'Run'}</p>
+                      </div>
+                    ))}
+
+                    {/* Planned Activities */}
+                    {item.planned.map((plan: any, idx: number) => (
+                      <div 
+                        key={`planned-${idx}`} 
+                        className="mb-1 last:mb-0 p-1 rounded-md border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedActivity({...plan, isPlanned: true});
+                        }}
+                      >
+                        <p className="text-[0.65rem] font-black text-blue-300">
+                          {plan.distance || plan.duration || 'Plan'}
+                        </p>
+                        <p className="text-[0.5rem] text-blue-400/70 truncate uppercase font-bold">{plan.workoutType || 'Run'}</p>
+                      </div>
+                    ))}
+                  </div>
 
                   {!item.hasActivity && (
                     <span className="text-[0.55rem] text-textMuted font-semibold tracking-wider opacity-0 hover:opacity-100 transition-opacity">REST</span>
@@ -315,6 +388,18 @@ export default function CalendarPage({ initialActivities = [], onNavigateToActiv
                 </div>
               );
             })}
+          </div>
+          
+          {/* Legend */}
+          <div className="mt-6 flex gap-4 px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
+              <span className="text-[0.6rem] font-black text-textSecondary uppercase tracking-widest">Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+              <span className="text-[0.6rem] font-black text-textSecondary uppercase tracking-widest">Planned</span>
+            </div>
           </div>
         </div>
       </div>

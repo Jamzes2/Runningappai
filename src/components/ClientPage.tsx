@@ -17,6 +17,7 @@ interface ClientPageProps {
   initialAllActivities: any[];
   initialStats: any;
   initialWeeklyVolume: any[];
+  initialPerformancePlan: any;
 }
 
 export default function ClientPage({ 
@@ -24,7 +25,8 @@ export default function ClientPage({
   initialRecentActivities, 
   initialAllActivities,
   initialStats,
-  initialWeeklyVolume
+  initialWeeklyVolume,
+  initialPerformancePlan
 }: ClientPageProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [preSelectedActivityId, setPreSelectedActivityId] = useState<string | number | undefined>(undefined);
@@ -43,6 +45,7 @@ export default function ClientPage({
   const [allActivities, setAllActivities] = useState(initialAllActivities);
   const [stats, setStats] = useState(initialStats);
   const [weeklyVolume, setWeeklyVolume] = useState(initialWeeklyVolume);
+  const [performancePlan, setPerformancePlan] = useState(initialPerformancePlan);
 
   // Update state when props change (e.g., after router.refresh())
   React.useEffect(() => {
@@ -51,12 +54,40 @@ export default function ClientPage({
     setAllActivities(initialAllActivities);
     setStats(initialStats);
     setWeeklyVolume(initialWeeklyVolume);
-  }, [initialUser, initialRecentActivities, initialAllActivities, initialStats, initialWeeklyVolume]);
+    setPerformancePlan(initialPerformancePlan);
+  }, [initialUser, initialRecentActivities, initialAllActivities, initialStats, initialWeeklyVolume, initialPerformancePlan]);
 
   const navigateToActivity = (id: string | number) => {
     setPreSelectedActivityId(id);
     setActiveTab('activities');
   };
+
+  const plannedActivities = React.useMemo(() => {
+    if (!performancePlan?.generatedPlan) return [];
+    try {
+      const parsed = JSON.parse(performancePlan.generatedPlan);
+      if (!parsed.weeks) return [];
+      
+      const activities: any[] = [];
+      parsed.weeks.forEach((week: any) => {
+        if (week.days) {
+          week.days.forEach((day: any) => {
+            if (day.workoutType && day.workoutType.toLowerCase() !== 'rest' && day.date) {
+              activities.push({
+                ...day,
+                isPlanned: true,
+                // Map fields to match Activity interface if needed
+                distance: day.distance ? parseFloat(day.distance.replace(/[^\d.]/g, '')) : 0,
+              });
+            }
+          });
+        }
+      });
+      return activities;
+    } catch (e) {
+      return [];
+    }
+  }, [performancePlan]);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
@@ -96,7 +127,13 @@ export default function ClientPage({
       case 'analytics':
         return <AnalyticsPage />;
       case 'calendar':
-        return <CalendarPage initialActivities={allActivities} onNavigateToActivity={navigateToActivity} />;
+        return (
+          <CalendarPage 
+            initialActivities={allActivities} 
+            plannedActivities={plannedActivities}
+            onNavigateToActivity={navigateToActivity} 
+          />
+        );
       case 'strength':
         return <StrengthPage />;
       case 'performance-plan':
