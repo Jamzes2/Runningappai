@@ -63,7 +63,6 @@ export default function DashboardLayout({
     { id: 'activities', label: 'Activities', icon: Activity },
     { id: 'coaching', label: 'Coaching', icon: MessageSquare },
     { id: 'performance-plan', label: 'Performance Plan', icon: Sparkles },
-    { id: 'analytics', label: 'Analytics', icon: LineChart },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'strength', label: 'Strength Training', icon: Dumbbell },
     { id: 'settings', label: 'Settings', icon: Settings },

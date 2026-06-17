@@ -5,7 +5,6 @@ import DashboardLayout, { NotificationItem } from '@/components/DashboardLayout'
 import DashboardPage from '@/components/pages/DashboardPage';
 import ActivitiesPage from '@/components/pages/ActivitiesPage';
 import CoachingPage from '@/components/pages/CoachingPage';
-import AnalyticsPage from '@/components/pages/AnalyticsPage';
 import CalendarPage from '@/components/pages/CalendarPage';
 import StrengthPage from '@/components/pages/StrengthPage';
 import SettingsPage from '@/components/pages/SettingsPage';
@@ -124,8 +123,6 @@ export default function ClientPage({
         return <ActivitiesPage initialActivities={allActivities} preSelectedId={preSelectedActivityId} />;
       case 'coaching':
         return <CoachingPage />;
-      case 'analytics':
-        return <AnalyticsPage />;
       case 'calendar':
         return (
           <CalendarPage 
