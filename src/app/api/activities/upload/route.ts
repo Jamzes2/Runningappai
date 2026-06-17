@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { db } from '@/db';
 import { users, activities } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { parseTcx, parseGpx, generateRouteSvg, calculateSplits } from '@/lib/tcx';
+import { parseTcx, parseGpx, parseFit, generateRouteSvg, calculateSplits } from '@/lib/tcx';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
@@ -48,13 +48,8 @@ export async function POST(request: NextRequest) {
       const gpxData = await file.text();
       parsedActivity = parseGpx(gpxData);
     } else if (fileName.endsWith('.fit')) {
-      // FIT is a binary format. We need a binary parser.
-      // Since we can't add new libraries easily right now, we'll inform the user.
-      // However, to "allow" the upload, we could try to use a placeholder or 
-      // suggest using TCX/GPX for now, but the user specifically asked for FIT.
-      return NextResponse.json({ 
-        error: 'FIT file support is being finalized. Please use TCX or GPX for full telemetry mapping in the meantime.' 
-      }, { status: 400 });
+      const arrayBuffer = await file.arrayBuffer();
+      parsedActivity = await parseFit(arrayBuffer);
     } else {
       return NextResponse.json({ 
         error: 'Unsupported file format. Please upload .tcx, .gpx, or .fit files.' 

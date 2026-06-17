@@ -51,6 +51,175 @@ function findValue(obj: any, keyName: string): any {
   return undefined;
 }
 
+export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
+  // We use require here to avoid issues with different build environments for this binary parser
+  let FitParser;
+  try {
+    const FitParserLib = require('fit-file-parser');
+    FitParser = FitParserLib.default || FitParserLib;
+  } catch (err) {
+    throw new Error('FIT parser library not found. Please ensure fit-file-parser is installed.');
+  }
+
+  const fitParser = new FitParser({
+    force: true,
+    speedUnit: 'km/h',
+    lengthUnit: 'km',
+    temperatureUnit: 'celsius',
+    elapsedRecordField: true,
+    mode: 'cascade',
+  });
+
+  const buffer = Buffer.from(arrayBuffer);
+
+  return new Promise((resolve, reject) => {
+    fitParser.parse(buffer, (error: any, data: any) => {
+      if (error) {
+        return reject(new Error(`FIT parsing failed: ${error}`));
+      }
+
+      if (!data) {
+        return reject(new Error('Failed to parse FIT file: No data returned'));
+      }
+
+      // Extract records from various possible locations in the FIT structure
+      let records: any[] = [];
+      
+      // 1. Direct records
+      if (data.records && data.records.length > 0) {
+        records = data.records;
+      } 
+      // 2. Cascaded in activity -> sessions -> laps -> records
+      else if (data.activity && data.activity.sessions) {
+        data.activity.sessions.forEach((session: any) => {
+          if (session.laps) {
+            session.laps.forEach((lap: any) => {
+              if (lap.records) records = records.concat(lap.records);
+            });
+          }
+        });
+      }
+      // 3. Cascaded in sessions -> laps -> records
+      else if (data.sessions) {
+        data.sessions.forEach((session: any) => {
+          if (session.laps) {
+            session.laps.forEach((lap: any) => {
+              if (lap.records) records = records.concat(lap.records);
+            });
+          }
+        });
+      }
+      // 4. Directly in laps -> records
+      else if (data.laps) {
+        data.laps.forEach((lap: any) => {
+          if (lap.records) records = records.concat(lap.records);
+        });
+      }
+
+      if (records.length === 0) {
+        return reject(new Error('No activity telemetry records found. This FIT file may only contain settings, device info, or summary data without GPS/HR points.'));
+      }
+
+      const rawTrackpoints: any[] = [];
+      let elevationGained = 0;
+      let lastAltitude: number | null = null;
+      let heartRateSum = 0;
+      let heartRateCount = 0;
+      let maxHeartRate = 0;
+      let cadenceSum = 0;
+      let cadenceCount = 0;
+      let powerSum = 0;
+      let powerCount = 0;
+
+      records.forEach((record: any) => {
+        const tpData = {
+          time: record.timestamp?.toISOString() || new Date().toISOString(),
+          distance: record.distance !== undefined ? record.distance * 1000 : undefined, // Convert km to meters
+          heartRate: record.heart_rate,
+          cadence: record.cadence || record.run_cadence,
+          power: record.power,
+          altitude: record.altitude,
+          lat: record.position_lat,
+          lng: record.position_long,
+        };
+
+        if (tpData.cadence && tpData.cadence < 120) tpData.cadence *= 2;
+        
+        rawTrackpoints.push(tpData);
+
+        if (tpData.heartRate) {
+          maxHeartRate = Math.max(maxHeartRate, tpData.heartRate);
+          heartRateSum += tpData.heartRate;
+          heartRateCount++;
+        }
+        if (tpData.cadence) {
+          cadenceSum += tpData.cadence;
+          cadenceCount++;
+        }
+        if (tpData.power) {
+          powerSum += tpData.power;
+          powerCount++;
+        }
+        if (tpData.altitude !== undefined) {
+          if (lastAltitude !== null) {
+            const diff = tpData.altitude - lastAltitude;
+            if (diff > 0) elevationGained += diff;
+          }
+          lastAltitude = tpData.altitude;
+        }
+      });
+
+      // Calculate overall stats
+      const firstTp = rawTrackpoints[0];
+      const lastTp = rawTrackpoints[rawTrackpoints.length - 1];
+      let totalDistance = (lastTp?.distance || 0) - (firstTp?.distance || 0);
+      let totalTime = (new Date(lastTp.time).getTime() - new Date(firstTp.time).getTime()) / 1000;
+
+      // Generate continuous telemetry
+      const telemetry: any[] = [];
+      const samplingRate = Math.max(1, Math.floor(rawTrackpoints.length / 500));
+
+      for (let i = 0; i < rawTrackpoints.length; i += samplingRate) {
+        const tp = rawTrackpoints[i];
+        let pace = null;
+        const lookback = 10;
+        if (i >= lookback) {
+          const prevTp = rawTrackpoints[i - lookback];
+          const dDist = ((tp.distance || 0) - (prevTp.distance || 0)) / 1000; // km
+          const dTime = (new Date(tp.time).getTime() - new Date(prevTp.time).getTime()) / 1000 / 60; // mins
+          if (dDist > 0.001) {
+            pace = dTime / dDist;
+            if (pace > 20) pace = 20;
+          }
+        }
+
+        telemetry.push({
+          d: parseFloat(((tp.distance || 0) / 1000).toFixed(3)),
+          p: pace ? parseFloat(pace.toFixed(2)) : null,
+          h: tp.heartRate || null,
+          c: tp.cadence || null,
+          w: tp.power || null,
+          a: tp.altitude || null
+        });
+      }
+
+      resolve({
+        id: data.sessions?.[0]?.event_group?.toString() || new Date().toISOString(),
+        startTime: firstTp?.time || new Date().toISOString(),
+        totalTimeSeconds: Math.round(totalTime),
+        totalDistanceMeters: totalDistance,
+        avgHeartRate: heartRateCount > 0 ? Math.round(heartRateSum / heartRateCount) : undefined,
+        maxHeartRate: maxHeartRate > 0 ? Math.round(maxHeartRate) : undefined,
+        avgCadence: cadenceCount > 0 ? Math.round(cadenceSum / cadenceCount) : undefined,
+        avgPower: powerCount > 0 ? Math.round(powerSum / powerCount) : undefined,
+        elevationGained: Math.round(elevationGained),
+        trackpoints: rawTrackpoints,
+        telemetry: telemetry
+      });
+    });
+  });
+}
+
 export function parseGpx(xmlData: string): TcxActivity {
   const parser = new XMLParser({
     ignoreAttributes: false,
