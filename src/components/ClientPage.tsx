@@ -9,6 +9,7 @@ import AnalyticsPage from '@/components/pages/AnalyticsPage';
 import CalendarPage from '@/components/pages/CalendarPage';
 import StrengthPage from '@/components/pages/StrengthPage';
 import SettingsPage from '@/components/pages/SettingsPage';
+import PerformancePlanPage from '@/components/pages/PerformancePlanPage';
 
 interface ClientPageProps {
   initialUser: any;
@@ -26,6 +27,7 @@ export default function ClientPage({
   initialWeeklyVolume
 }: ClientPageProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [preSelectedActivityId, setPreSelectedActivityId] = useState<string | number | undefined>(undefined);
   
   // Check for tab parameter in URL
   React.useEffect(() => {
@@ -50,6 +52,11 @@ export default function ClientPage({
     setStats(initialStats);
     setWeeklyVolume(initialWeeklyVolume);
   }, [initialUser, initialRecentActivities, initialAllActivities, initialStats, initialWeeklyVolume]);
+
+  const navigateToActivity = (id: string | number) => {
+    setPreSelectedActivityId(id);
+    setActiveTab('activities');
+  };
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
@@ -83,15 +90,17 @@ export default function ClientPage({
           />
         );
       case 'activities':
-        return <ActivitiesPage initialActivities={allActivities} />;
+        return <ActivitiesPage initialActivities={allActivities} preSelectedId={preSelectedActivityId} />;
       case 'coaching':
         return <CoachingPage />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'calendar':
-        return <CalendarPage />;
+        return <CalendarPage initialActivities={allActivities} onNavigateToActivity={navigateToActivity} />;
       case 'strength':
         return <StrengthPage />;
+      case 'performance-plan':
+        return <PerformancePlanPage />;
       case 'settings':
         return <SettingsPage user={user} />;
       default:

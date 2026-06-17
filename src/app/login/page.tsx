@@ -40,20 +40,26 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      } else {
+        setSuccessMessage('Login successful! Redirecting...');
+        setTimeout(() => {
+          router.push('/');
+          router.refresh();
+        }, 1000);
+      }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'An unexpected error occurred during login. Please check your connection and configuration.');
       setLoading(false);
-    } else {
-      setSuccessMessage('Login successful! Redirecting...');
-      setTimeout(() => {
-        router.push('/');
-        router.refresh();
-      }, 1000);
     }
   };
 
@@ -84,23 +90,29 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      }
-    });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
-      setSuccessMessage('Sign up successful! Check your email for the confirmation link.');
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setTimeout(() => setIsSignUp(false), 2000);
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      } else {
+        setSuccessMessage('Sign up successful! Check your email for the confirmation link.');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setTimeout(() => setIsSignUp(false), 2000);
+        setLoading(false);
+      }
+    } catch (err: any) {
+      console.error('Sign up error:', err);
+      setError(err.message || 'An unexpected error occurred during sign up. Please check your connection and configuration.');
       setLoading(false);
     }
   };

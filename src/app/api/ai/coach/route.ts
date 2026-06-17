@@ -1,72 +1,98 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { db } from '@/db';
+import { users, coachConversations } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   try {
+    const supabase = await createClient();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+
     const { messages } = await request.json();
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages array provided' }, { status: 400 });
     }
 
-    if (!apiKey || apiKey === 'mock-openrouter-key') {
-      return getMockResponse(messages);
+    // Identify user in DB
+    let userProfile = null;
+    if (authUser && db) {
+      const profiles = await db.select().from(users).where(eq(users.email, authUser.email!)).limit(1);
+      userProfile = profiles[0];
     }
 
-    // System prompt instructing the model on athlete biometrics, personality, and styling rules
-    const systemPrompt = {
-      role: 'system',
-      content: `You are the RunSynergy AI Coach—a premium, scientific performance running assistant built to help elite athletes crush personal records.
-Your athlete is James Robinson.
-Biometrics:
-- Age: 28
-- VO2 Max: 58.6 ml/kg/min (Elite status)
-- HRV: 86ms (Highly responsive nervous system)
-- Resting HR: 48 bpm
-- Target: Sub 17:30 5k, Sub 35:00 10k, Sub 1:18 Half Marathon.
+    // Save user's latest message if we have a profile
+    if (userProfile && messages.length > 0) {
+      const lastUserMsg = messages[messages.length - 1];
+      if (lastUserMsg.role === 'user') {
+        await db.insert(coachConversations).values({
+          userId: userProfile.id,
+          sender: 'user',
+          message: lastUserMsg.content
+        });
+      }
+    }
 
+    let result;
+    if (!apiKey || apiKey === 'mock-openrouter-key') {
+      result = await getMockResponse(messages);
+    } else {
+      // System prompt
+      const systemPrompt = {
+        role: 'system',
+        content: `You are the RunSynergy AI Coach—a premium, scientific performance running assistant built to help elite athletes crush personal records.
+Your athlete is ${userProfile?.fullName || 'James Robinson'}.
 Tone guidelines:
 - Human-natured, personable, and encouraging.
 - Extremely scientific, referencing biomechanics (Ground Contact Time, Vertical Oscillation, Power output).
 - Actionable advice: prescribe specific target runs, intervals, or strength drills (e.g. pogo jumps, soleus raises).
 - Keep responses relatively brief and highly readable.`
-    };
+      };
 
-    // Prepare full messages array
-    const fullMessages = [systemPrompt, ...messages];
+      const fullMessages = [systemPrompt, ...messages];
 
-    // Connect to OpenRouter API
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://runsynergy.com', // Site URL for OpenRouter ranking
-        'X-Title': 'RunSynergy Analytics',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash', // Recommended model for speed & quality
-        messages: fullMessages,
-      }),
-    });
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://runsynergy.com',
+          'X-Title': 'RunSynergy Analytics',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3.5-flash',
+          messages: fullMessages,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[OpenRouter API Error]', errorText);
-      
-      // Fallback to mock data if API call fails (e.g. 402 Payment Required)
-      return getMockResponse(messages);
+      if (!response.ok) {
+        result = await getMockResponse(messages);
+      } else {
+        const data = await response.json();
+        result = NextResponse.json(data);
+      }
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Save AI response
+    if (userProfile) {
+      const data = await result.clone().json();
+      const replyText = data.choices?.[0]?.message?.content;
+      if (replyText) {
+        await db.insert(coachConversations).values({
+          userId: userProfile.id,
+          sender: 'coach',
+          message: replyText
+        });
+      }
+    }
+
+    return result;
   } catch (err: any) {
     console.error('[AI Coach Route Exception]', err);
-    return NextResponse.json(
-      { error: err.message || 'Internal server error' }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
 

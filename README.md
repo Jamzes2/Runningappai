@@ -1,10 +1,10 @@
 # RunSynergy - Elite Athlete Dashboard
 
-RunSynergy is a high-performance running analytics dashboard that integrates with the Strava API to provide athletes with deep insights into their training load, pace, and heart rate zones.
+RunSynergy is a high-performance running analytics dashboard that allows athletes to upload TCX training files to get deep insights into their training load, pace, and heart rate zones.
 
 ## 🚀 Features
 
-- **Strava Integration**: Full OAuth2 integration to sync all running activities.
+- **TCX Data Import**: High-fidelity data import from Garmin, Coros, Wahoo, and other training devices.
 - **Advanced Analytics**: Tracking of distance, average pace, heart rate zones, and elevation.
 - **AI Coaching**: AI-powered workout recommendations and activity summaries.
 - **Modern UI**: A sleek, dark-themed dashboard built with Next.js 15 and Tailwind CSS.
@@ -12,11 +12,12 @@ RunSynergy is a high-performance running analytics dashboard that integrates wit
 ## 🛠️ Tech Stack
 
 - **Framework**: Next.js 15 (App Router)
-- **StylHing**: Tailwind CSS
+- **Styling**: Tailwind CSS
 - **Database**: PostgreSQL (via Supabase)
 - **ORM**: Drizzle ORM
 - **Authentication**: Supabase Auth
-- **API**: Strava v3 API, OpenRouter (Gemini 2.5 Flash)
+- **AI**: Gemini 2.5 Flash via OpenRouter
+- **Parsing**: TCX (Training Center XML) via fast-xml-parser
 
 ## ⚙️ Setup & Installation
 
@@ -40,14 +41,8 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 DATABASE_URL=postgresql://postgres:[password]@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres
 
-# Strava API Configuration
-STRAVA_CLIENT_ID=your_strava_client_id
-STRAVA_CLIENT_SECRET=your_strava_client_secret
-STRAVA_REDIRECT_URI=http://localhost:3000/api/auth/strava/callback
-
 # AI Configuration
 OPENROUTER_API_KEY=your_openrouter_api_key
-Gemini_API_Key=your_gemini_api_key
 \`\`\`
 
 ### 4. Database Migration
@@ -68,7 +63,6 @@ To keep your API keys and database credentials safe:
 
 1. **Never commit `.env.local`**: This file is included in `.gitignore` to prevent secrets from being pushed to GitHub.
 2. **Use Environment Variables**: When deploying to a platform like Vercel or Netlify, add these keys in the "Environment Variables" section of the project settings.
-3. **Strava Redirect URI**: Ensure that the `STRAVA_REDIRECT_URI` matches exactly what is configured in your Strava API Application settings.
 
 ## 📜 License
 MIT

@@ -32,13 +32,32 @@ export const activities = pgTable('activities', {
   avgHr: integer('avg_hr'),
   maxHr: integer('max_hr'),
   avgPower: integer('avg_power'),
+  avgCadence: integer('avg_cadence'),
+  avgTemp: integer('avg_temp'),
   elevationGained: doublePrecision('elevation_gained'),
   routeSvg: text('route_svg'), // SVG trace coordinate lines
   splits: jsonb('splits'), // array of splits: { split: number, pace: string, hr: number, power: number }
+  telemetry: jsonb('telemetry'), // High-res continuous data: [{ distance, pace, hr, cadence, power, alt }]
   date: timestamp('date').notNull(),
   aiSummary: text('ai_summary'),
   aiWorkoutRecommendation: text('ai_workout_recommendation'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Performance Plan table
+export const performancePlans = pgTable('performance_plans', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  raceName: text('race_name').notNull(),
+  raceDistance: text('race_distance').notNull(), // e.g., '5km', 'Marathon'
+  raceDate: timestamp('race_date').notNull(),
+  raceGoal: text('race_goal').notNull(), // e.g., 'Sub 4 hours'
+  personalNotes: text('personal_notes'),
+  generatedPlan: text('generated_plan'), // The AI generated content
+  elevationData: jsonb('elevation_data'), // Elevation profile for the race
+  raceDay: text('race_day'), // e.g. 'Sunday'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // AI Coach Conversations table

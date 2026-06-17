@@ -61,7 +61,8 @@ export default function DashboardLayout({
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'activities', label: 'Activities', icon: Activity },
-    { id: 'coaching', label: 'Coaching', icon: Sparkles },
+    { id: 'coaching', label: 'Coaching', icon: MessageSquare },
+    { id: 'performance-plan', label: 'Performance Plan', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: LineChart },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'strength', label: 'Strength Training', icon: Dumbbell },
@@ -247,12 +248,16 @@ export default function DashboardLayout({
 
           {/* Right Control Bar */}
           <div className="flex items-center gap-5">
-            {/* Sync status */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-full border border-borderDark">
-              <RefreshCw size={12} className="text-accent" />
-              <span className="text-[0.72rem] text-textSecondary font-semibold">GARMIN CONNECTED</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block shadow-glowStrong"></span>
-            </div>
+            {/* Upload Data Button */}
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-full border border-borderDark hover:border-accent/40 transition-all cursor-pointer group`}
+            >
+              <RefreshCw size={12} className={`text-accent group-hover:rotate-180 transition-transform duration-500`} />
+              <span className="text-[0.72rem] text-textSecondary font-semibold uppercase tracking-wider">
+                Upload Data
+              </span>
+            </button>
 
             {/* Notification trigger */}
             <button 

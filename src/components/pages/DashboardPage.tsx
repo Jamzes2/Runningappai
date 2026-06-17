@@ -97,8 +97,8 @@ export default function DashboardPage({
           <h2 className="text-2xl font-black tracking-tight text-white">WELCOME BACK, {user?.fullName?.split(' ')[0].toUpperCase() || 'ATHLETE'}</h2>
           <p className="text-textSecondary text-[0.88rem] mt-1">
             {recentActivities.length > 0 
-              ? isClient ? `Last activity synced: ${formattedDate}. Your training load is in the ` : "Last activity synced: "
-              : "No activities synced yet. Connect Strava in Settings to see your progress."}
+              ? isClient ? `Last activity uploaded: ${formattedDate}. Your training load is in the ` : "Last activity uploaded: "
+              : "No activities uploaded yet. Upload TCX files in Settings to see your progress."}
             {recentActivities.length > 0 && <strong className="text-accent">optimal</strong>} zone.
           </p>
         </div>

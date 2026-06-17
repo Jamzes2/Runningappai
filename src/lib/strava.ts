@@ -126,6 +126,47 @@ export async function syncStravaActivities(userId: string, options: { after?: Da
         const avgPace = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
         try {
+          // Fetch detailed activity to get splits
+          console.log(`Fetching details for activity ${activity.id}...`);
+          const detailResponse = await fetch(
+            `https://www.strava.com/api/v3/activities/${activity.id}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            }
+          );
+          
+          let splitsData = null;
+          let detailedCadence = activity.average_cadence || null;
+          let detailedTemp = null;
+
+          if (detailResponse.ok) {
+            const detailData = await detailResponse.json();
+            detailedCadence = detailData.average_cadence || activity.average_cadence || null;
+            
+            if (detailData.splits_metric) {
+              splitsData = detailData.splits_metric.map((s: any) => {
+                const splitPaceSeconds = s.distance > 0 ? s.moving_time / (s.distance / 1000) : 0;
+                const m = Math.floor(splitPaceSeconds / 60);
+                const sec = Math.floor(splitPaceSeconds % 60);
+                
+                // Strava splits usually have average_heartrate, but rarely average_cadence
+                // We'll use the activity's average_cadence as a fallback if the split lacks it
+                return {
+                  split: s.split,
+                  distance: s.distance / 1000,
+                  elapsed_time: s.elapsed_time,
+                  moving_time: s.moving_time,
+                  pace: `${m}:${sec.toString().padStart(2, '0')}`,
+                  avg_hr: s.average_heartrate ? Math.round(s.average_heartrate) : null,
+                  avg_cadence: s.average_cadence ? Math.round(s.average_cadence) : (detailedCadence ? Math.round(detailedCadence) : null),
+                  elevation_difference: s.elevation_difference
+                };
+              });
+            }
+          }
+
           await db.insert(activities).values({
             id: activity.id.toString(),
             userId: userId,
@@ -136,8 +177,10 @@ export async function syncStravaActivities(userId: string, options: { after?: Da
             avgHr: activity.average_heartrate ? Math.round(activity.average_heartrate) : null,
             maxHr: activity.max_heartrate ? Math.round(activity.max_heartrate) : null,
             avgPower: activity.average_watts ? Math.round(activity.average_watts) : null,
+            avgCadence: detailedCadence ? Math.round(detailedCadence) : null,
             elevationGained: activity.total_elevation_gain || null,
             date: activityDate,
+            splits: splitsData,
           }).onConflictDoUpdate({
             target: [activities.id],
             set: {
@@ -148,7 +191,9 @@ export async function syncStravaActivities(userId: string, options: { after?: Da
               avgHr: activity.average_heartrate ? Math.round(activity.average_heartrate) : null,
               maxHr: activity.max_heartrate ? Math.round(activity.max_heartrate) : null,
               avgPower: activity.average_watts ? Math.round(activity.average_watts) : null,
+              avgCadence: detailedCadence ? Math.round(detailedCadence) : null,
               elevationGained: activity.total_elevation_gain || null,
+              splits: splitsData,
             }
           });
           syncCount++;
