@@ -38,6 +38,7 @@ export const activities = pgTable('activities', {
   routeSvg: text('route_svg'), // SVG trace coordinate lines
   splits: jsonb('splits'), // array of splits: { split: number, pace: string, hr: number, power: number }
   telemetry: jsonb('telemetry'), // High-res continuous data: [{ distance, pace, hr, cadence, power, alt }]
+  metadata: jsonb('metadata'), // Additional rich metrics: { trainingEffect, calories, normalizedPower, etc. }
   date: timestamp('date').notNull(),
   aiSummary: text('ai_summary'),
   aiWorkoutRecommendation: text('ai_workout_recommendation'),

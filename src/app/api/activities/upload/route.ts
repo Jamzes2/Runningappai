@@ -81,10 +81,12 @@ export async function POST(request: NextRequest) {
       maxHr: parsedActivity.maxHeartRate ? Math.round(parsedActivity.maxHeartRate) : null,
       avgCadence: parsedActivity.avgCadence ? Math.round(parsedActivity.avgCadence) : null,
       avgPower: parsedActivity.avgPower ? Math.round(parsedActivity.avgPower) : null,
+      avgTemp: parsedActivity.avgTemp ? Math.round(parsedActivity.avgTemp) : null,
       elevationGained: parsedActivity.elevationGained || 0, 
       routeSvg: routeSvg,
       splits: splits,
       telemetry: parsedActivity.telemetry,
+      metadata: parsedActivity.metadata,
       date: new Date(parsedActivity.startTime),
     });
 

@@ -47,6 +47,9 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
   const [showHR, setShowHR] = useState(true);
   const [showCadence, setShowCadence] = useState(false);
   const [showPower, setShowPower] = useState(false);
+  const [showTemp, setShowTemp] = useState(false);
+  const [showVO, setShowVO] = useState(false);
+  const [showGCT, setShowGCT] = useState(false);
 
   // Load activities from the backend when the component mounts
   useEffect(() => {
@@ -173,7 +176,10 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
         hr: t.h,
         cadence: t.c,
         power: t.w,
-        altitude: t.a
+        altitude: t.a,
+        temp: t.t,
+        vo: (t.vo !== undefined && t.vo !== null) ? t.vo / 10 : null, // Convert mm to cm
+        gct: t.gct !== undefined ? t.gct : null
       }));
     }
 
@@ -193,7 +199,10 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
           hr: (selectedActivity.avgHr || 150) + Math.floor(Math.random() * 10 - 5),
           cadence: (selectedActivity.avgCadence || 170) + Math.floor(Math.random() * 6 - 3),
           power: (selectedActivity.avgPower || 250) + Math.floor(Math.random() * 20 - 10),
-          altitude: Math.floor(Math.random() * 50)
+          altitude: Math.floor(Math.random() * 50),
+          temp: (selectedActivity.avgTemp || 20) + (Math.random() * 2 - 1),
+          vo: 10 + (Math.random() * 2 - 1),
+          gct: 240 + (Math.random() * 20 - 10)
         };
       });
     }
@@ -354,10 +363,146 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
               <div className="flex items-center gap-2">
                 <Award size={16} className="text-accent" />
                 <span className="text-[0.75rem] text-textSecondary font-semibold">
-                  Workout Intensity: <span className="text-white font-bold">Threshold (Aerobic Focus)</span>
+                  Workout Intensity: <span className="text-white font-bold">{selectedActivity.metadata?.intensityFactor ? `${(selectedActivity.metadata.intensityFactor * 100).toFixed(0)}% IF` : 'Threshold (Aerobic Focus)'}</span>
                 </span>
               </div>
             </div>
+
+            {/* Advanced Metrics / Training Load */}
+            {selectedActivity.metadata && Object.keys(selectedActivity.metadata).length > 0 && (
+              <div className="bg-white/[0.01] border border-white/5 rounded-xl p-4 flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp size={16} className="text-accent" />
+                  <h4 className="text-[0.75rem] font-black text-white uppercase tracking-widest">Training Impact</h4>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                  {selectedActivity.metadata.aerobicTrainingEffect !== undefined && (
+                    <div className="flex flex-col">
+                      <span className="text-[0.55rem] text-textMuted font-bold uppercase">Aerobic TE</span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-accent" 
+                            style={{ width: `${(selectedActivity.metadata.aerobicTrainingEffect / 5) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-[0.85rem] font-black text-white">{selectedActivity.metadata.aerobicTrainingEffect.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.anaerobicTrainingEffect !== undefined && (
+                    <div className="flex flex-col">
+                      <span className="text-[0.55rem] text-textMuted font-bold uppercase">Anaerobic TE</span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-400" 
+                            style={{ width: `${(selectedActivity.metadata.anaerobicTrainingEffect / 5) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-[0.85rem] font-black text-white">{selectedActivity.metadata.anaerobicTrainingEffect.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.trainingStressScore !== undefined && (
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-[0.6rem] text-textSecondary font-bold uppercase">TSS</span>
+                      <span className="text-[0.9rem] font-black text-white">{Math.round(selectedActivity.metadata.trainingStressScore)}</span>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.calories !== undefined && (
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-[0.6rem] text-textSecondary font-bold uppercase">Calories</span>
+                      <span className="text-[0.9rem] font-black text-white">{Math.round(selectedActivity.metadata.calories)} kcal</span>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.recoveryTime !== undefined && (
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-[0.6rem] text-textSecondary font-bold uppercase">Recovery</span>
+                      <span className="text-[0.9rem] font-black text-accent">{Math.round(selectedActivity.metadata.recoveryTime)}h</span>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.vo2Max !== undefined && (
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-[0.6rem] text-textSecondary font-bold uppercase">VO2 Max</span>
+                      <span className="text-[0.9rem] font-black text-white">{Math.round(selectedActivity.metadata.vo2Max)}</span>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.totalAscent !== undefined && (
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-[0.6rem] text-textSecondary font-bold uppercase">Total Ascent</span>
+                      <span className="text-[0.9rem] font-black text-white">{Math.round(selectedActivity.metadata.totalAscent)}m</span>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.totalDescent !== undefined && (
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-[0.6rem] text-textSecondary font-bold uppercase">Total Descent</span>
+                      <span className="text-[0.9rem] font-black text-white">{Math.round(selectedActivity.metadata.totalDescent)}m</span>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.totalWork !== undefined && (
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-[0.6rem] text-textSecondary font-bold uppercase">Work</span>
+                      <span className="text-[0.9rem] font-black text-white">{Math.round(selectedActivity.metadata.totalWork / 1000)} kJ</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Running Dynamics Section */}
+            {selectedActivity.metadata && (
+              selectedActivity.metadata.avgStrideLength !== undefined || 
+              selectedActivity.metadata.avgVerticalOscillation !== undefined || 
+              selectedActivity.metadata.avgGroundContactTime !== undefined
+            ) && (
+              <div className="bg-white/[0.01] border border-white/5 rounded-xl p-4 flex flex-col justify-center mt-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Zap size={16} className="text-blue-400" />
+                  <h4 className="text-[0.75rem] font-black text-white uppercase tracking-widest">Running Dynamics</h4>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedActivity.metadata.avgStrideLength !== undefined && (
+                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                      <span className="text-[0.55rem] text-textMuted font-bold uppercase block mb-1">Stride Length</span>
+                      <p className="text-[1rem] font-black text-white">
+                        {(selectedActivity.metadata.avgStrideLength / 100).toFixed(2)} 
+                        <span className="text-[0.6rem] text-textSecondary ml-1">m</span>
+                      </p>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.avgVerticalOscillation !== undefined && (
+                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                      <span className="text-[0.55rem] text-textMuted font-bold uppercase block mb-1">Vertical Osc.</span>
+                      <p className="text-[1rem] font-black text-white">
+                        {(selectedActivity.metadata.avgVerticalOscillation / 10).toFixed(1)} 
+                        <span className="text-[0.6rem] text-textSecondary ml-1">cm</span>
+                      </p>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.avgGroundContactTime !== undefined && (
+                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                      <span className="text-[0.55rem] text-textMuted font-bold uppercase block mb-1">GCT</span>
+                      <p className="text-[1rem] font-black text-white">
+                        {Math.round(selectedActivity.metadata.avgGroundContactTime)} 
+                        <span className="text-[0.6rem] text-textSecondary ml-1">ms</span>
+                      </p>
+                    </div>
+                  )}
+                  {selectedActivity.metadata.avgGroundContactBalance !== undefined && (
+                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                      <span className="text-[0.55rem] text-textMuted font-bold uppercase block mb-1">GCT Balance</span>
+                      <p className="text-[1rem] font-black text-white">
+                        {(selectedActivity.metadata.avgGroundContactBalance / 100).toFixed(1)}
+                        <span className="text-[0.6rem] text-textSecondary ml-1">% L/R</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Map display */}
             <div className="min-h-[220px] rounded-xl bg-gradient-to-b from-[#1b1b1b] to-[#080808] border border-borderDark relative overflow-hidden flex items-center justify-center">
@@ -396,7 +541,7 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                   <TrendingUp size={16} />
                   Performance Chart
                 </h3>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-end">
                   <button 
                     onClick={() => setShowPace(!showPace)}
                     className={`px-2.5 py-1 rounded-md text-[0.65rem] font-black tracking-widest uppercase transition-all border ${
@@ -433,6 +578,36 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                       }`}
                     >
                       POWER
+                    </button>
+                  )}
+                  {selectedActivity.avgTemp !== undefined && selectedActivity.avgTemp !== null && (
+                    <button 
+                      onClick={() => setShowTemp(!showTemp)}
+                      className={`px-2.5 py-1 rounded-md text-[0.65rem] font-black tracking-widest uppercase transition-all border ${
+                        showTemp ? 'bg-orange-500 text-white border-orange-500' : 'bg-transparent text-textMuted border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      TEMP
+                    </button>
+                  )}
+                  {selectedActivity.metadata?.avgVerticalOscillation !== undefined && selectedActivity.metadata?.avgVerticalOscillation !== null && (
+                    <button 
+                      onClick={() => setShowVO(!showVO)}
+                      className={`px-2.5 py-1 rounded-md text-[0.65rem] font-black tracking-widest uppercase transition-all border ${
+                        showVO ? 'bg-cyan-400 text-black border-cyan-400' : 'bg-transparent text-textMuted border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      VO
+                    </button>
+                  )}
+                  {selectedActivity.metadata?.avgGroundContactTime !== undefined && selectedActivity.metadata?.avgGroundContactTime !== null && (
+                    <button 
+                      onClick={() => setShowGCT(!showGCT)}
+                      className={`px-2.5 py-1 rounded-md text-[0.65rem] font-black tracking-widest uppercase transition-all border ${
+                        showGCT ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-transparent text-textMuted border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      GCT
                     </button>
                   )}
                 </div>
@@ -473,7 +648,7 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                         tickFormatter={formatPace}
                       />
                       
-                      {/* Right Axis: HR, Cadence, Power */}
+                      {/* Right Axis: HR, Cadence, Power, Temp, VO, GCT */}
                       <YAxis 
                         yAxisId="metrics"
                         orientation="right"
@@ -481,7 +656,7 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                         fontSize={10} 
                         tickLine={false} 
                         axisLine={false} 
-                        hide={!showHR && !showCadence && !showPower}
+                        hide={!showHR && !showCadence && !showPower && !showTemp && !showVO && !showGCT}
                         domain={['auto', 'auto']}
                       />
                       <Tooltip 
@@ -500,6 +675,9 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                           if (name === 'hr') return [`${value} bpm`, `Heart Rate @ ${dist}km`];
                           if (name === 'cadence') return [`${value} spm`, `Cadence @ ${dist}km`];
                           if (name === 'power') return [`${value} W`, `Power @ ${dist}km`];
+                          if (name === 'temp') return [`${value.toFixed(1)} °C`, `Temperature @ ${dist}km`];
+                          if (name === 'vo') return [`${value.toFixed(1)} cm`, `Vertical Oscillation @ ${dist}km`];
+                          if (name === 'gct') return [`${value} ms`, `Ground Contact Time @ ${dist}km`];
                           return [value, name];
                         }}
                       />
@@ -552,6 +730,45 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                           dot={false}
                           connectNulls
                           activeDot={{ r: 4, strokeWidth: 0, fill: '#A855F7' }}
+                        />
+                      )}
+
+                      {showTemp && (
+                        <Line 
+                          yAxisId="metrics"
+                          type="monotone" 
+                          dataKey="temp" 
+                          stroke="#F97316" 
+                          strokeWidth={2} 
+                          dot={false}
+                          connectNulls
+                          activeDot={{ r: 4, strokeWidth: 0, fill: '#F97316' }}
+                        />
+                      )}
+
+                      {showVO && (
+                        <Line 
+                          yAxisId="metrics"
+                          type="monotone" 
+                          dataKey="vo" 
+                          stroke="#22D3EE" 
+                          strokeWidth={2} 
+                          dot={false}
+                          connectNulls
+                          activeDot={{ r: 4, strokeWidth: 0, fill: '#22D3EE' }}
+                        />
+                      )}
+
+                      {showGCT && (
+                        <Line 
+                          yAxisId="metrics"
+                          type="monotone" 
+                          dataKey="gct" 
+                          stroke="#10B981" 
+                          strokeWidth={2} 
+                          dot={false}
+                          connectNulls
+                          activeDot={{ r: 4, strokeWidth: 0, fill: '#10B981' }}
                         />
                       )}
 

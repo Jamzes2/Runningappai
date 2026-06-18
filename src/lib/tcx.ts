@@ -9,6 +9,12 @@ export interface TcxTrackpoint {
   heartRate?: number;
   cadence?: number;
   power?: number;
+  temperature?: number;
+  verticalOscillation?: number;
+  groundContactTime?: number;
+  groundContactBalance?: number;
+  strideLength?: number;
+  verticalRatio?: number;
 }
 
 export interface TcxActivity {
@@ -20,9 +26,11 @@ export interface TcxActivity {
   maxHeartRate?: number;
   avgCadence?: number;
   avgPower?: number;
+  avgTemp?: number;
   elevationGained?: number;
   trackpoints: TcxTrackpoint[];
   telemetry?: any[];
+  metadata?: any;
 }
 
 function findValue(obj: any, keyName: string): any {
@@ -130,17 +138,25 @@ export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
       let cadenceCount = 0;
       let powerSum = 0;
       let powerCount = 0;
+      let tempSum = 0;
+      let tempCount = 0;
 
       records.forEach((record: any) => {
-        const tpData = {
+        const tpData: TcxTrackpoint = {
           time: record.timestamp?.toISOString() || new Date().toISOString(),
           distance: record.distance !== undefined ? record.distance * 1000 : undefined, // Convert km to meters
-          heartRate: record.heart_rate,
-          cadence: record.cadence || record.run_cadence,
+          heartRate: record.heart_rate || record.heartRate,
+          cadence: record.cadence || record.run_cadence || record.runCadence,
           power: record.power,
           altitude: record.altitude,
-          lat: record.position_lat,
-          lng: record.position_long,
+          lat: record.position_lat || record.positionLat,
+          lng: record.position_long || record.positionLong,
+          temperature: record.temperature,
+          verticalOscillation: record.vertical_oscillation || record.verticalOscillation,
+          groundContactTime: record.stance_time || record.stanceTime || record.ground_contact_time || record.groundContactTime,
+          groundContactBalance: record.stance_time_balance || record.stanceTimeBalance || record.ground_contact_balance || record.groundContactBalance,
+          strideLength: record.step_length || record.stepLength || record.stride_length || record.strideLength,
+          verticalRatio: record.vertical_ratio || record.verticalRatio,
         };
 
         if (tpData.cadence && tpData.cadence < 120) tpData.cadence *= 2;
@@ -159,6 +175,10 @@ export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
         if (tpData.power) {
           powerSum += tpData.power;
           powerCount++;
+        }
+        if (tpData.temperature !== undefined) {
+          tempSum += tpData.temperature;
+          tempCount++;
         }
         if (tpData.altitude !== undefined) {
           if (lastAltitude !== null) {
@@ -199,12 +219,20 @@ export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
           h: tp.heartRate || null,
           c: tp.cadence || null,
           w: tp.power || null,
-          a: tp.altitude || null
+          a: tp.altitude || null,
+          t: tp.temperature || null,
+          vo: tp.verticalOscillation !== undefined ? tp.verticalOscillation : null,
+          gct: tp.groundContactTime !== undefined ? tp.groundContactTime : null,
+          gctb: tp.groundContactBalance !== undefined ? tp.groundContactBalance : null,
+          sl: tp.strideLength !== undefined ? tp.strideLength : null,
+          vr: tp.verticalRatio !== undefined ? tp.verticalRatio : null
         });
       }
 
+      const session = (data.sessions && data.sessions[0]) || (data.activity?.sessions && data.activity.sessions[0]) || {};
+
       resolve({
-        id: data.sessions?.[0]?.event_group?.toString() || new Date().toISOString(),
+        id: session.event_group?.toString() || new Date().toISOString(),
         startTime: firstTp?.time || new Date().toISOString(),
         totalTimeSeconds: Math.round(totalTime),
         totalDistanceMeters: totalDistance,
@@ -212,9 +240,32 @@ export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
         maxHeartRate: maxHeartRate > 0 ? Math.round(maxHeartRate) : undefined,
         avgCadence: cadenceCount > 0 ? Math.round(cadenceSum / cadenceCount) : undefined,
         avgPower: powerCount > 0 ? Math.round(powerSum / powerCount) : undefined,
+        avgTemp: tempCount > 0 ? Math.round(tempSum / tempCount) : undefined,
         elevationGained: Math.round(elevationGained),
         trackpoints: rawTrackpoints,
-        telemetry: telemetry
+        telemetry: telemetry,
+        metadata: {
+          calories: session.total_calories || session.totalCalories,
+          aerobicTrainingEffect: session.total_training_effect || session.totalTrainingEffect || session.aerobic_training_effect || session.aerobicTrainingEffect,
+          anaerobicTrainingEffect: session.total_anaerobic_training_effect || session.totalAnaerobicTrainingEffect || session.anaerobic_training_effect || session.anaerobicTrainingEffect,
+          recoveryTime: session.recovery_time || session.recoveryTime,
+          normalizedPower: session.normalized_power || session.normalizedPower,
+          trainingStressScore: session.training_stress_score || session.trainingStressScore,
+          intensityFactor: session.intensity_factor || session.intensityFactor,
+          avgTemperature: session.avg_temperature || session.avgTemperature,
+          maxTemperature: session.max_temperature || session.maxTemperature,
+          vo2Max: session.vo2_max || session.vo2Max,
+          // Advanced Running Dynamics
+          avgStrideLength: session.avg_stride_length || session.avgStrideLength,
+          avgVerticalOscillation: session.avg_vertical_oscillation || session.avgVerticalOscillation,
+          avgGroundContactTime: session.avg_stance_time || session.avgStanceTime || session.avg_ground_contact_time || session.avgGroundContactTime,
+          avgGroundContactBalance: session.avg_stance_time_balance || session.avgStanceTimeBalance || session.avg_ground_contact_balance || session.avgGroundContactBalance,
+          avgVerticalRatio: session.avg_vertical_ratio || session.avgVerticalRatio,
+          avgStepLength: session.avg_step_length || session.avgStepLength,
+          totalAscent: session.total_ascent || session.totalAscent,
+          totalDescent: session.total_descent || session.totalDescent,
+          totalWork: session.total_work || session.totalWork,
+        }
       });
     });
   });
@@ -243,6 +294,8 @@ export function parseGpx(xmlData: string): TcxActivity {
   let cadenceCount = 0;
   let powerSum = 0;
   let powerCount = 0;
+  let tempSum = 0;
+  let tempCount = 0;
   let elevationGained = 0;
   let lastAltitude: number | null = null;
   
@@ -282,17 +335,19 @@ export function parseGpx(xmlData: string): TcxActivity {
       lastLat = lat;
       lastLng = lng;
 
-      // Extensions for HR, Cadence, Power
+      // Extensions for HR, Cadence, Power, Temp
       const hrVal = findValue(tp, 'hr') || findValue(tp, 'HeartRate');
       const cadVal = findValue(tp, 'cad') || findValue(tp, 'cadence') || findValue(tp, 'RunCadence');
       const powVal = findValue(tp, 'pwr') || findValue(tp, 'power') || findValue(tp, 'Watts');
+      const tempVal = findValue(tp, 'atemp') || findValue(tp, 'temp') || findValue(tp, 'temperature');
 
-      const tpData = {
+      const tpData: TcxTrackpoint = {
         time: timeVal,
         distance: totalDistance,
         heartRate: hrVal ? parseInt(hrVal) : undefined,
         cadence: cadVal ? parseInt(cadVal) : undefined,
         power: powVal ? parseInt(powVal) : undefined,
+        temperature: tempVal ? parseFloat(tempVal) : undefined,
         altitude: altVal,
         lat: lat,
         lng: lng,
@@ -314,6 +369,10 @@ export function parseGpx(xmlData: string): TcxActivity {
       if (tpData.power) {
         powerSum += tpData.power;
         powerCount++;
+      }
+      if (tpData.temperature !== undefined) {
+        tempSum += tpData.temperature;
+        tempCount++;
       }
       if (tpData.altitude !== undefined) {
         if (lastAltitude !== null) {
@@ -356,7 +415,8 @@ export function parseGpx(xmlData: string): TcxActivity {
       h: tp.heartRate || null,
       c: tp.cadence || null,
       w: tp.power || null,
-      a: tp.altitude || null
+      a: tp.altitude || null,
+      t: tp.temperature || null,
     });
   }
 
@@ -369,6 +429,7 @@ export function parseGpx(xmlData: string): TcxActivity {
     maxHeartRate: maxHeartRate > 0 ? Math.round(maxHeartRate) : undefined,
     avgCadence: cadenceCount > 0 ? Math.round(cadenceSum / cadenceCount) : undefined,
     avgPower: powerCount > 0 ? Math.round(powerSum / powerCount) : undefined,
+    avgTemp: tempCount > 0 ? Math.round(tempSum / tempCount) : undefined,
     elevationGained: Math.round(elevationGained),
     trackpoints: rawTrackpoints,
     telemetry: telemetry
@@ -397,6 +458,8 @@ export function parseTcx(xmlData: string): TcxActivity {
   let cadenceCount = 0;
   let powerSum = 0;
   let powerCount = 0;
+  let tempSum = 0;
+  let tempCount = 0;
   let elevationGained = 0;
   let lastAltitude: number | null = null;
   
@@ -413,16 +476,18 @@ export function parseTcx(xmlData: string): TcxActivity {
         const hrVal = findValue(tp, 'HeartRateBpm')?.Value;
         const cadVal = findValue(tp, 'Cadence') || findValue(tp, 'RunCadence');
         const powVal = findValue(tp, 'Watts');
+        const tempVal = findValue(tp, 'atemp') || findValue(tp, 'temperature');
         const altVal = tp.AltitudeMeters;
         const distVal = tp.DistanceMeters;
         const timeVal = tp.Time;
 
-        const tpData = {
+        const tpData: TcxTrackpoint = {
           time: timeVal,
           distance: distVal !== undefined ? parseFloat(distVal) : undefined,
           heartRate: hrVal ? parseInt(hrVal) : undefined,
           cadence: cadVal ? parseInt(cadVal) : undefined,
           power: powVal ? parseInt(powVal) : undefined,
+          temperature: tempVal ? parseFloat(tempVal) : undefined,
           altitude: altVal ? parseFloat(altVal) : undefined,
           lat: tp.Position?.LatitudeDegrees ? parseFloat(tp.Position.LatitudeDegrees) : undefined,
           lng: tp.Position?.LongitudeDegrees ? parseFloat(tp.Position.LongitudeDegrees) : undefined,
@@ -444,6 +509,10 @@ export function parseTcx(xmlData: string): TcxActivity {
         if (tpData.power) {
           powerSum += tpData.power;
           powerCount++;
+        }
+        if (tpData.temperature !== undefined) {
+          tempSum += tpData.temperature;
+          tempCount++;
         }
         if (tpData.altitude !== undefined) {
           if (lastAltitude !== null) {
@@ -493,7 +562,8 @@ export function parseTcx(xmlData: string): TcxActivity {
       h: tp.heartRate || null,
       c: tp.cadence || null,
       w: tp.power || null,
-      a: tp.altitude || null
+      a: tp.altitude || null,
+      t: tp.temperature || null,
     });
   }
 
@@ -506,6 +576,7 @@ export function parseTcx(xmlData: string): TcxActivity {
     maxHeartRate: maxHeartRate > 0 ? Math.round(maxHeartRate) : undefined,
     avgCadence: cadenceCount > 0 ? Math.round(cadenceSum / cadenceCount) : undefined,
     avgPower: powerCount > 0 ? Math.round(powerSum / powerCount) : undefined,
+    avgTemp: tempCount > 0 ? Math.round(tempSum / tempCount) : undefined,
     elevationGained: Math.round(elevationGained),
     trackpoints: rawTrackpoints,
     telemetry: telemetry

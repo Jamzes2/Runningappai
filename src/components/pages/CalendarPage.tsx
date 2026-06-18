@@ -208,6 +208,75 @@ export default function CalendarPage({ initialActivities = [], plannedActivities
                       : (selectedActivity.aiSummary || "This run shows excellent aerobic efficiency. Your pace was very stable relative to your heart rate.")}
                   </p>
                 </div>
+
+                {/* Rich Metadata Section */}
+                {!selectedActivity.isPlanned && selectedActivity.metadata && Object.keys(selectedActivity.metadata).length > 0 && (
+                  <div className="grid grid-cols-3 gap-4">
+                    {selectedActivity.metadata.aerobicTrainingEffect !== undefined && (
+                      <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-center">
+                        <span className="text-[0.55rem] text-textMuted font-bold uppercase block mb-1">Aerobic TE</span>
+                        <p className="text-sm font-black text-white">{selectedActivity.metadata.aerobicTrainingEffect.toFixed(1)}</p>
+                      </div>
+                    )}
+                    {selectedActivity.metadata.anaerobicTrainingEffect !== undefined && (
+                      <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-center">
+                        <span className="text-[0.55rem] text-textMuted font-bold uppercase block mb-1">Anaerobic TE</span>
+                        <p className="text-sm font-black text-white">{selectedActivity.metadata.anaerobicTrainingEffect.toFixed(1)}</p>
+                      </div>
+                    )}
+                    {selectedActivity.metadata.calories !== undefined && (
+                      <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-center">
+                        <span className="text-[0.55rem] text-textMuted font-bold uppercase block mb-1">Burn</span>
+                        <p className="text-sm font-black text-white">{Math.round(selectedActivity.metadata.calories)} kcal</p>
+                      </div>
+                    )}
+                    {selectedActivity.metadata.recoveryTime !== undefined && (
+                      <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-center">
+                        <span className="text-[0.55rem] text-textMuted font-bold uppercase block mb-1">Recovery</span>
+                        <p className="text-sm font-black text-accent">{Math.round(selectedActivity.metadata.recoveryTime)}h</p>
+                      </div>
+                    )}
+                    {selectedActivity.metadata.vo2Max !== undefined && (
+                      <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-center">
+                        <span className="text-[0.55rem] text-textMuted font-bold uppercase block mb-1">VO2 Max</span>
+                        <p className="text-sm font-black text-white">{Math.round(selectedActivity.metadata.vo2Max)}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Running Dynamics Section */}
+                {!selectedActivity.isPlanned && selectedActivity.metadata && (
+                  selectedActivity.metadata.avgStrideLength !== undefined || 
+                  selectedActivity.metadata.avgVerticalOscillation !== undefined
+                ) && (
+                  <div className="p-5 bg-blue-500/5 border border-blue-500/10 rounded-xl">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap size={14} className="text-blue-400" />
+                      <h4 className="text-[0.75rem] font-black text-white uppercase tracking-widest">Running Dynamics</h4>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {selectedActivity.metadata.avgStrideLength !== undefined && (
+                        <div>
+                          <span className="text-[0.5rem] text-textMuted font-bold uppercase block">Stride</span>
+                          <p className="text-xs font-black text-white">{(selectedActivity.metadata.avgStrideLength / 100).toFixed(2)}m</p>
+                        </div>
+                      )}
+                      {selectedActivity.metadata.avgVerticalOscillation !== undefined && (
+                        <div>
+                          <span className="text-[0.5rem] text-textMuted font-bold uppercase block">Vert Osc.</span>
+                          <p className="text-xs font-black text-white">{(selectedActivity.metadata.avgVerticalOscillation / 10).toFixed(1)}cm</p>
+                        </div>
+                      )}
+                      {selectedActivity.metadata.avgGroundContactTime !== undefined && (
+                        <div>
+                          <span className="text-[0.5rem] text-textMuted font-bold uppercase block">GCT</span>
+                          <p className="text-xs font-black text-white">{Math.round(selectedActivity.metadata.avgGroundContactTime)}ms</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Column: Visual */}
