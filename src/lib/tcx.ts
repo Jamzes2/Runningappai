@@ -72,7 +72,7 @@ export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
   const fitParser = new FitParser({
     force: true,
     speedUnit: 'km/h',
-    lengthUnit: 'km',
+    lengthUnit: 'm',
     temperatureUnit: 'celsius',
     elapsedRecordField: true,
     mode: 'cascade',
@@ -144,11 +144,11 @@ export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
       records.forEach((record: any) => {
         const tpData: TcxTrackpoint = {
           time: record.timestamp?.toISOString() || new Date().toISOString(),
-          distance: record.distance !== undefined ? record.distance * 1000 : undefined, // Convert km to meters
+          distance: record.distance, // Now in meters by default
           heartRate: record.heart_rate || record.heartRate,
           cadence: record.cadence || record.run_cadence || record.runCadence,
           power: record.power,
-          altitude: record.altitude,
+          altitude: record.enhanced_altitude !== undefined ? record.enhanced_altitude : (record.enhancedAltitude !== undefined ? record.enhancedAltitude : (record.altitude !== undefined ? record.altitude : undefined)),
           lat: record.position_lat || record.positionLat,
           lng: record.position_long || record.positionLong,
           temperature: record.temperature,
@@ -230,6 +230,7 @@ export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
       }
 
       const session = (data.sessions && data.sessions[0]) || (data.activity?.sessions && data.activity.sessions[0]) || {};
+      const sessionAscent = session.total_ascent || session.totalAscent || session.enhanced_total_ascent || session.enhancedTotalAscent;
 
       resolve({
         id: session.event_group?.toString() || new Date().toISOString(),
@@ -241,7 +242,7 @@ export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
         avgCadence: cadenceCount > 0 ? Math.round(cadenceSum / cadenceCount) : undefined,
         avgPower: powerCount > 0 ? Math.round(powerSum / powerCount) : undefined,
         avgTemp: tempCount > 0 ? Math.round(tempSum / tempCount) : undefined,
-        elevationGained: Math.round(elevationGained),
+        elevationGained: (sessionAscent && sessionAscent > 0) ? Math.round(sessionAscent) : Math.round(elevationGained),
         trackpoints: rawTrackpoints,
         telemetry: telemetry,
         metadata: {
@@ -262,8 +263,8 @@ export async function parseFit(arrayBuffer: ArrayBuffer): Promise<TcxActivity> {
           avgGroundContactBalance: session.avg_stance_time_balance || session.avgStanceTimeBalance || session.avg_ground_contact_balance || session.avgGroundContactBalance,
           avgVerticalRatio: session.avg_vertical_ratio || session.avgVerticalRatio,
           avgStepLength: session.avg_step_length || session.avgStepLength,
-          totalAscent: session.total_ascent || session.totalAscent,
-          totalDescent: session.total_descent || session.totalDescent,
+          totalAscent: session.total_ascent || session.totalAscent || session.enhanced_total_ascent || session.enhancedTotalAscent,
+          totalDescent: session.total_descent || session.totalDescent || session.enhanced_total_descent || session.enhancedTotalDescent,
           totalWork: session.total_work || session.totalWork,
         }
       });
@@ -618,10 +619,11 @@ export function calculateSplits(trackpoints: any[]) {
   let currentSplitHeartRateCount = 0;
   let currentSplitCadenceSum = 0;
   let currentSplitCadenceCount = 0;
-  let currentSplitElevationGain = 0;
+  let currentSplitAscent = 0;
+  let currentSplitDescent = 0;
   let lastTime = new Date(trackpoints[0].time).getTime();
   let lastDistance = trackpoints[0].distance || 0;
-  let lastAltitude = trackpoints[0].altitude || null;
+  let lastAltitude = (trackpoints[0].altitude !== undefined && trackpoints[0].altitude !== null) ? trackpoints[0].altitude : null;
   let splitNumber = 1;
 
   for (let i = 1; i < trackpoints.length; i++) {
@@ -645,9 +647,18 @@ export function calculateSplits(trackpoints: any[]) {
       currentSplitCadenceCount++;
     }
 
-    if (tp.altitude !== undefined && lastAltitude !== null) {
-      const altDiff = tp.altitude - lastAltitude;
-      if (altDiff > 0) currentSplitElevationGain += altDiff;
+    if (tp.altitude !== undefined && tp.altitude !== null) {
+      if (lastAltitude === null) {
+        lastAltitude = tp.altitude;
+      } else {
+        const altDiff = tp.altitude - lastAltitude;
+        // Only count changes greater than 0.5m to filter noise
+        if (Math.abs(altDiff) >= 0.5) {
+          if (altDiff > 0) currentSplitAscent += altDiff;
+          else if (altDiff < 0) currentSplitDescent += Math.abs(altDiff);
+          lastAltitude = tp.altitude;
+        }
+      }
     }
 
     if (currentSplitDistance >= 1000) { // Every 1km
@@ -660,7 +671,8 @@ export function calculateSplits(trackpoints: any[]) {
         pace: `${mins}:${secs.toString().padStart(2, '0')}`,
         avg_hr: currentSplitHeartRateCount > 0 ? Math.round(currentSplitHeartRateSum / currentSplitHeartRateCount) : null,
         avg_cadence: currentSplitCadenceCount > 0 ? Math.round(currentSplitCadenceSum / currentSplitCadenceCount) : null,
-        elevation_difference: Math.round(currentSplitElevationGain),
+        ascent: Math.round(currentSplitAscent),
+        descent: Math.round(currentSplitDescent),
       });
       
       currentSplitDistance = 0;
@@ -669,12 +681,12 @@ export function calculateSplits(trackpoints: any[]) {
       currentSplitHeartRateCount = 0;
       currentSplitCadenceSum = 0;
       currentSplitCadenceCount = 0;
-      currentSplitElevationGain = 0;
+      currentSplitAscent = 0;
+      currentSplitDescent = 0;
     }
     
     lastTime = currentTime;
     lastDistance = currentDistance;
-    lastAltitude = tp.altitude !== undefined ? tp.altitude : lastAltitude;
   }
   
   // Add partial last split if significant
@@ -687,7 +699,8 @@ export function calculateSplits(trackpoints: any[]) {
       pace: `${mins}:${secs.toString().padStart(2, '0')}`,
       avg_hr: currentSplitHeartRateCount > 0 ? Math.round(currentSplitHeartRateSum / currentSplitHeartRateCount) : null,
       avg_cadence: currentSplitCadenceCount > 0 ? Math.round(currentSplitCadenceSum / currentSplitCadenceCount) : null,
-      elevation_difference: Math.round(currentSplitElevationGain),
+      ascent: Math.round(currentSplitAscent),
+      descent: Math.round(currentSplitDescent),
     });
   }
 

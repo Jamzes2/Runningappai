@@ -4,6 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ComposedChart,
+  AreaChart,
+  LineChart,
   Line, 
   ResponsiveContainer, 
   Tooltip, 
@@ -535,7 +537,7 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
         {selectedActivity && (
           <div className="grid grid-cols-[1.2fr_1fr] gap-5">
             
-            <div className="glass-panel p-6 flex flex-col h-[380px]">
+            <div className="glass-panel p-6 flex flex-col min-h-[500px] h-fit">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-[0.95rem] font-extrabold tracking-wider text-accent uppercase flex items-center gap-2">
                   <TrendingUp size={16} />
@@ -613,168 +615,182 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                 </div>
               </div>
               
-              <div className="flex-1 w-full">
+              <div className="flex-1 w-full flex flex-col">
                 {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorPace" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                      <XAxis 
-                        dataKey="dist" 
-                        stroke="rgba(255,255,255,0.3)" 
-                        fontSize={10} 
-                        tickLine={false} 
-                        axisLine={false}
-                        type="number"
-                        domain={[0, 'dataMax']}
-                        tickFormatter={(val) => `${val.toFixed(1)}`}
-                        label={{ value: 'DISTANCE (KM)', position: 'insideBottom', offset: -5, fontSize: 8, fill: 'rgba(255,255,255,0.2)', fontWeight: 'bold' }}
-                      />
-                      {/* Left Axis: Pace */}
-                      <YAxis 
-                        yAxisId="pace"
-                        stroke="rgba(255,255,255,0.3)" 
-                        fontSize={10} 
-                        tickLine={false} 
-                        axisLine={false} 
-                        reversed
-                        hide={!showPace}
-                        domain={['dataMin - 0.2', 'dataMax + 0.2']}
-                        tickFormatter={formatPace}
-                      />
-                      
-                      {/* Right Axis: HR, Cadence, Power, Temp, VO, GCT */}
-                      <YAxis 
-                        yAxisId="metrics"
-                        orientation="right"
-                        stroke="rgba(255,255,255,0.3)" 
-                        fontSize={10} 
-                        tickLine={false} 
-                        axisLine={false} 
-                        hide={!showHR && !showCadence && !showPower && !showTemp && !showVO && !showGCT}
-                        domain={['auto', 'auto']}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#111', 
-                          border: '1px solid rgba(255,255,255,0.1)', 
-                          borderRadius: '12px',
-                          fontSize: '11px',
-                          color: '#fff'
-                        }}
-                        itemStyle={{ padding: '2px 0' }}
-                        cursor={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
-                        formatter={(value: any, name: string, props: any) => {
-                          const dist = props.payload.dist;
-                          if (name === 'pace') return [`${formatPace(value)} /km`, `Pace @ ${dist}km`];
-                          if (name === 'hr') return [`${value} bpm`, `Heart Rate @ ${dist}km`];
-                          if (name === 'cadence') return [`${value} spm`, `Cadence @ ${dist}km`];
-                          if (name === 'power') return [`${value} W`, `Power @ ${dist}km`];
-                          if (name === 'temp') return [`${value.toFixed(1)} °C`, `Temperature @ ${dist}km`];
-                          if (name === 'vo') return [`${value.toFixed(1)} cm`, `Vertical Oscillation @ ${dist}km`];
-                          if (name === 'gct') return [`${value} ms`, `Ground Contact Time @ ${dist}km`];
-                          return [value, name];
-                        }}
-                      />
-                      {showPace && (
-                        <Area 
-                          yAxisId="pace"
-                          type="monotone" 
-                          dataKey="pace" 
-                          stroke="var(--accent)" 
-                          strokeWidth={3} 
-                          fillOpacity={1} 
-                          fill="url(#colorPace)" 
-                          activeDot={{ r: 6, strokeWidth: 0, fill: 'var(--accent)' }}
-                        />
-                      )}
+                  <div className="flex flex-col gap-6 pb-2">
+                    {/* PACE CHART */}
+                    {showPace && (
+                      <div className="h-[180px] w-full relative">
+                        <p className="absolute top-0 left-0 text-[0.65rem] font-black text-accent opacity-50 z-10 uppercase tracking-tighter">Pace (min/km)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={chartData} syncId="anyId" margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorPace" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="dist" hide />
+                            <YAxis 
+                              stroke="rgba(255,255,255,0.3)" 
+                              fontSize={10} 
+                              tickLine={false} 
+                              axisLine={false} 
+                              reversed
+                              domain={['dataMin - 0.2', 'dataMax + 0.2']}
+                              tickFormatter={formatPace}
+                            />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                              cursor={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
+                              formatter={(value: any) => [`${formatPace(value)} /km`, 'Pace']}
+                            />
+                            <Area type="monotone" dataKey="pace" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorPace)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
 
-                      {showHR && (
-                        <Line 
-                          yAxisId="metrics"
-                          type="monotone" 
-                          dataKey="hr" 
-                          stroke="#FF3B30" 
-                          strokeWidth={2} 
-                          dot={false}
-                          connectNulls
-                          activeDot={{ r: 4, strokeWidth: 0, fill: '#FF3B30' }}
-                        />
-                      )}
-                      
-                      {showCadence && (
-                        <Line 
-                          yAxisId="metrics"
-                          type="monotone" 
-                          dataKey="cadence" 
-                          stroke="#3B82F6" 
-                          strokeWidth={2} 
-                          dot={false}
-                          connectNulls
-                          activeDot={{ r: 4, strokeWidth: 0, fill: '#3B82F6' }}
-                        />
-                      )}
-                      
-                      {showPower && (
-                        <Line 
-                          yAxisId="metrics"
-                          type="monotone" 
-                          dataKey="power" 
-                          stroke="#A855F7" 
-                          strokeWidth={2} 
-                          dot={false}
-                          connectNulls
-                          activeDot={{ r: 4, strokeWidth: 0, fill: '#A855F7' }}
-                        />
-                      )}
+                    {/* HR CHART */}
+                    {showHR && (
+                      <div className="h-[130px] w-full relative">
+                        <p className="absolute top-0 left-0 text-[0.65rem] font-black text-[#FF3B30] opacity-50 z-10 uppercase tracking-tighter">Heart Rate (bpm)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} syncId="anyId" margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="dist" hide />
+                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                              cursor={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
+                              formatter={(value: any) => [`${value} bpm`, 'Heart Rate']}
+                            />
+                            <Line type="monotone" dataKey="hr" stroke="#FF3B30" strokeWidth={2} dot={false} connectNulls />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
 
-                      {showTemp && (
-                        <Line 
-                          yAxisId="metrics"
-                          type="monotone" 
-                          dataKey="temp" 
-                          stroke="#F97316" 
-                          strokeWidth={2} 
-                          dot={false}
-                          connectNulls
-                          activeDot={{ r: 4, strokeWidth: 0, fill: '#F97316' }}
-                        />
-                      )}
+                    {/* CADENCE CHART */}
+                    {showCadence && (
+                      <div className="h-[110px] w-full relative">
+                        <p className="absolute top-0 left-0 text-[0.65rem] font-black text-[#3B82F6] opacity-50 z-10 uppercase tracking-tighter">Cadence (spm)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} syncId="anyId" margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="dist" hide />
+                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                              cursor={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
+                              formatter={(value: any) => [`${value} spm`, 'Cadence']}
+                            />
+                            <Line type="monotone" dataKey="cadence" stroke="#3B82F6" strokeWidth={2} dot={false} connectNulls />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
 
-                      {showVO && (
-                        <Line 
-                          yAxisId="metrics"
-                          type="monotone" 
-                          dataKey="vo" 
-                          stroke="#22D3EE" 
-                          strokeWidth={2} 
-                          dot={false}
-                          connectNulls
-                          activeDot={{ r: 4, strokeWidth: 0, fill: '#22D3EE' }}
-                        />
-                      )}
+                    {/* POWER CHART */}
+                    {showPower && (
+                      <div className="h-[110px] w-full relative">
+                        <p className="absolute top-0 left-0 text-[0.65rem] font-black text-[#A855F7] opacity-50 z-10 uppercase tracking-tighter">Power (W)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} syncId="anyId" margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="dist" hide />
+                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                              cursor={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
+                              formatter={(value: any) => [`${value} W`, 'Power']}
+                            />
+                            <Line type="monotone" dataKey="power" stroke="#A855F7" strokeWidth={2} dot={false} connectNulls />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
 
-                      {showGCT && (
-                        <Line 
-                          yAxisId="metrics"
-                          type="monotone" 
-                          dataKey="gct" 
-                          stroke="#10B981" 
-                          strokeWidth={2} 
-                          dot={false}
-                          connectNulls
-                          activeDot={{ r: 4, strokeWidth: 0, fill: '#10B981' }}
-                        />
-                      )}
+                    {/* TEMP, VO, GCT */}
+                    {showTemp && (
+                      <div className="h-[100px] w-full relative">
+                        <p className="absolute top-0 left-0 text-[0.65rem] font-black text-[#F97316] opacity-50 z-10 uppercase tracking-tighter">Temperature (°C)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} syncId="anyId" margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="dist" hide />
+                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                              cursor={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
+                              formatter={(value: any) => [`${value.toFixed(1)} °C`, 'Temperature']}
+                            />
+                            <Line type="monotone" dataKey="temp" stroke="#F97316" strokeWidth={2} dot={false} connectNulls />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
 
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                    {showVO && (
+                      <div className="h-[100px] w-full relative">
+                        <p className="absolute top-0 left-0 text-[0.65rem] font-black text-[#22D3EE] opacity-50 z-10 uppercase tracking-tighter">Vertical Oscillation (cm)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} syncId="anyId" margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="dist" hide />
+                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                              cursor={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
+                              formatter={(value: any) => [`${value.toFixed(1)} cm`, 'Vertical Oscillation']}
+                            />
+                            <Line type="monotone" dataKey="vo" stroke="#22D3EE" strokeWidth={2} dot={false} connectNulls />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {showGCT && (
+                      <div className="h-[100px] w-full relative">
+                        <p className="absolute top-0 left-0 text-[0.65rem] font-black text-[#10B981] opacity-50 z-10 uppercase tracking-tighter">Ground Contact Time (ms)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} syncId="anyId" margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="dist" hide />
+                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                              cursor={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
+                              formatter={(value: any) => [`${value} ms`, 'Ground Contact Time']}
+                            />
+                            <Line type="monotone" dataKey="gct" stroke="#10B981" strokeWidth={2} dot={false} connectNulls />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {/* BOTTOM X-AXIS FOR ALL */}
+                    <div className="h-[30px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} syncId="anyId" margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
+                          <XAxis 
+                            dataKey="dist" 
+                            stroke="rgba(255,255,255,0.3)" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false}
+                            type="number"
+                            domain={[0, 'dataMax']}
+                            tickFormatter={(val) => `${val.toFixed(1)}`}
+                            label={{ value: 'DISTANCE (KM)', position: 'insideBottom', offset: -5, fontSize: 8, fill: 'rgba(255,255,255,0.2)', fontWeight: 'bold' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 ) : (
+
                   <div className="h-full flex flex-col items-center justify-center border border-white/5 rounded-xl bg-white/[0.01] text-center p-6">
                     <TrendingUp size={32} className="text-textMuted mb-3 opacity-20" />
                     <p className="text-textSecondary text-sm font-medium">Detailed continuous telemetry is being processed</p>
@@ -794,18 +810,19 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                 {selectedActivity.splits && selectedActivity.splits.length > 0 ? (
                   <div className="flex flex-col gap-1">
                     {/* Table Header */}
-                    <div className="grid grid-cols-5 px-3 py-2 text-[0.65rem] font-black text-textMuted tracking-widest uppercase border-b border-white/5 mb-2">
+                    <div className="grid grid-cols-6 px-3 py-2 text-[0.65rem] font-black text-textMuted tracking-widest uppercase border-b border-white/5 mb-2">
                       <span>KM</span>
                       <span>PACE</span>
                       <span>HR</span>
                       <span>CAD</span>
-                      <span className="text-right">ELEV</span>
+                      <span className="text-right">ASC</span>
+                      <span className="text-right">DES</span>
                     </div>
                     
                     {selectedActivity.splits.map((s: any, idx: number) => (
                       <div 
                         key={idx} 
-                        className="grid grid-cols-5 px-3 py-3 rounded-lg hover:bg-white/[0.03] transition-colors items-center border-b border-white/[0.02] last:border-0"
+                        className="grid grid-cols-6 px-3 py-3 rounded-lg hover:bg-white/[0.03] transition-colors items-center border-b border-white/[0.02] last:border-0"
                       >
                         <span className="text-sm font-black text-white">{s.split}</span>
                         <div className="flex items-center gap-1.5">
@@ -813,8 +830,11 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                         </div>
                         <span className="text-sm font-semibold text-textSecondary">{s.avg_hr ? `${s.avg_hr}` : '--'}</span>
                         <span className="text-sm font-semibold text-textSecondary">{s.avg_cadence ? `${s.avg_cadence}` : '--'}</span>
-                        <span className={`text-xs font-bold text-right ${s.elevation_difference > 0 ? 'text-blue-400' : 'text-orange-400'}`}>
-                          {s.elevation_difference > 0 ? '+' : ''}{Math.round(s.elevation_difference)}m
+                        <span className="text-xs font-bold text-right text-blue-400">
+                          {s.ascent !== undefined ? `+${Math.round(s.ascent)}m` : (s.elevation_difference ? `+${Math.round(s.elevation_difference)}m` : '0m')}
+                        </span>
+                        <span className="text-xs font-bold text-right text-orange-400">
+                          {s.descent !== undefined ? `-${Math.round(s.descent)}m` : '--'}
                         </span>
                       </div>
                     ))}
@@ -851,7 +871,9 @@ export default function ActivitiesPage({ initialActivities = [], preSelectedId }
                 <Zap size={14} className="text-accent" />
                 <span className="text-[0.62rem] text-accent font-extrabold tracking-wider uppercase">Adaptive Training Suggestion</span>
               </div>
-              <h4 className="text-base font-extrabold text-white">VO2 Max Progression Intervals</h4>
+              <h4 className="text-base font-extrabold text-white">
+                {selectedActivity.aiWorkoutRecommendation?.split('\n')[0].replace(/^[#*-\s]+/, '') || "VO2 Max Progression Intervals"}
+              </h4>
               <p className="text-[0.78rem] text-textSecondary mt-2 leading-relaxed">
                 {selectedActivity.aiWorkoutRecommendation || "Based on the fatigue index from this run, we recommend 48 hours of recovery followed by a high-intensity interval session to peak your aerobic ceiling."}
               </p>

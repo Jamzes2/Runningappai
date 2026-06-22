@@ -90,6 +90,74 @@ export async function POST(request: NextRequest) {
       date: new Date(parsedActivity.startTime),
     });
 
+    // Generate AI Session Intelligence
+    try {
+      // Fetch some context (past 5 runs) for comparison
+      const pastActivities = await db
+        .select()
+        .from(activities)
+        .where(eq(activities.userId, userProfile.id))
+        .orderBy(activities.date)
+        .limit(5);
+
+      const comparisonContext = pastActivities.map(a => ({
+        date: a.date.toISOString().split('T')[0],
+        dist: a.distance.toFixed(2),
+        pace: a.avgPace,
+        hr: a.avgHr,
+        cadence: a.avgCadence
+      }));
+
+      const aiResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/coach`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content: `Please analyze my new run and compare it to my recent history.
+NEW RUN:
+- Distance: ${parsedActivity.totalDistanceMeters / 1000}km
+- Avg Pace: ${parsedActivity.avgPace || '--'}
+- Avg HR: ${parsedActivity.avgHeartRate || '--'}
+- Avg Cadence: ${parsedActivity.avgCadence || '--'}
+- Running Dynamics: VO: ${parsedActivity.metadata?.avgVerticalOscillation}cm, GCT: ${parsedActivity.metadata?.avgGroundContactTime}ms
+
+RECENT HISTORY:
+${JSON.stringify(comparisonContext, null, 2)}
+
+Provide two specific parts in your response:
+1. SUMMARY: A personalized analysis of this run, how it compares to my others, and specific biomechanical feedback.
+2. RECOMMENDATION: One specific adaptive training suggestion for my next workout.
+
+Format your response exactly as:
+SUMMARY: [analysis text]
+RECOMMENDATION: [workout text]`
+            }
+          ]
+        })
+      });
+
+      if (aiResponse.ok) {
+        const aiData = await aiResponse.json();
+        const content = aiData.choices?.[0]?.message?.content || "";
+        
+        const summaryMatch = content.match(/SUMMARY:\s*([\s\S]*?)(?=RECOMMENDATION:|$)/i);
+        const recommendationMatch = content.match(/RECOMMENDATION:\s*([\s\S]*)/i);
+
+        if (summaryMatch || recommendationMatch) {
+          await db.update(activities)
+            .set({
+              aiSummary: summaryMatch ? summaryMatch[1].trim() : null,
+              aiWorkoutRecommendation: recommendationMatch ? recommendationMatch[1].trim() : null
+            })
+            .where(eq(activities.id, activityId));
+        }
+      }
+    } catch (aiErr) {
+      console.error('Failed to generate AI intelligence:', aiErr);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Activity uploaded successfully',
