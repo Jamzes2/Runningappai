@@ -1,0 +1,310 @@
+# THE AI RUNNING COACH KNOWLEDGE BASE
+## Part 2: Exercise Physiology for Coaches
+
+> **Document purpose:** Part 1 established *why* training works in principle (adaptation, overload, specificity, individualisation, recovery). Part 2 goes one level deeper: the actual physiological machinery those principles are acting on. Every workout in Part 4 and every zone in Part 3 exists to move one or more of these eight systems. If the AI engine can't explain *which* system a workout trains and *why* that system matters for the athlete's goal race, it shouldn't prescribe the workout. This chapter is what makes that explanation possible.
+
+---
+
+## 1.0 How to Read This Chapter
+
+Each of the eight topics below follows the same structure:
+
+- **What it is** (plain-language explanation)
+- **Why it matters for performance**
+- **How training changes it** (the actual cellular/systemic adaptation)
+- **What an AI engine needs to know to act on it**
+
+By the end, Section 9 compiles everything into a single **Energy System Training Rules** table that Part 3 (Intensity Zones) and Part 4 (Workout Library) will reference directly.
+
+---
+
+## 2.0 The Aerobic System
+
+### 2.1 What It Is
+
+The aerobic (oxidative) energy system produces ATP by combining oxygen with fuel (carbohydrate or fat) inside the mitochondria. It is comparatively slow to turn on but can sustain output for hours, which is why it supplies the overwhelming majority of energy for any running effort lasting longer than ~2–3 minutes — meaning it is the dominant system for literally every distance from the 1500m upward, and the *only* meaningfully relevant system for half marathon and marathon racing.
+
+### 2.2 Why It Matters
+
+The aerobic system's ceiling is most commonly expressed as **VO2 max** (Section 5) — but its *practical* importance to a distance runner comes from three separate sub-capacities that often improve at different rates and from different stimuli:
+
+1. **Central capacity** — how much oxygenated blood the heart can deliver per minute (cardiac output = stroke volume × heart rate). This is driven almost entirely by **stroke volume** adaptations, since maximum heart rate does not meaningfully change with training (and slightly declines with age).
+2. **Peripheral capacity** — how effectively the trained muscle can *extract and use* that oxygen once delivered. This is driven by **mitochondrial density, mitochondrial efficiency, and capillarisation** of the specific muscle fibres being used.
+3. **Substrate delivery and clearance** — the cardiovascular system's ability to simultaneously deliver fuel, clear metabolic by-products, and regulate temperature during sustained effort.
+
+### 2.3 How Training Changes It
+
+- **Stroke volume** increases primarily through high *training volume* over months to years — chronically elevated cardiac output during training causes the left ventricle to enlarge and become more compliant (a benign, well-documented adaptation sometimes called "athlete's heart"). This is one of the slowest-adapting variables in this entire document, with meaningful change typically requiring **months, not weeks** — a critical fact for an AI engine to encode, because it means central aerobic adaptation cannot be rushed via short blocks of intensity; it requires sustained volume over a long horizon.
+- **Mitochondrial density and capillarisation** respond to *both* volume and intensity, but high-volume, moderate-intensity training (i.e., a large base of easy-to-moderate running) is the most time-efficient and lowest-injury-risk way to drive this adaptation, because the stimulus is dose-dependent on *time spent* with elevated muscle oxygen flux, not on absolute intensity.
+- **Practical consequence:** the aerobic system is built primarily by **consistent, large volumes of comfortable running over a long time horizon** — this is the physiological justification for Lydiard-style and East African base-building philosophy (Part 10), and for why "more easy miles" is rarely the wrong default answer to "what should this athlete add next," provided Part 1's progressive-overload guardrails are respected.
+
+**AI Rule 2.1 — Aerobic Base Primacy**
+```
+IF athlete.training_age_stage ∈ {Foundation, Development}
+   AND goal_event ≥ 10K
+THEN the single highest-priority lever for the next 8–16 weeks
+     is increasing consistent easy-to-moderate volume —
+     not adding intensity — regardless of how unexciting this feels
+     to the athlete. Intensity work without an adequate aerobic base
+     produces smaller and less durable gains.
+```
+
+---
+
+## 3.0 The Anaerobic System
+
+### 3.1 What It Is
+
+The anaerobic systems produce ATP without oxygen, via two pathways: the **phosphocreatine (PCr) system** (near-instant, lasts ~6–10 seconds, used for sprinting/starts) and **anaerobic glycolysis** (rapid, lasts roughly 30 seconds to 2–3 minutes, the dominant contributor to efforts like an all-out 400–800m). Both produce **lactate and hydrogen ions** as by-products, which is the actual physiological cause of the "burning" sensation and the loss of force production in hard, short efforts.
+
+### 3.2 Why It Matters
+
+For a typical recreational or sub-elite road/distance runner, the anaerobic system's *direct* contribution to race performance is small for any event 5K and longer (commonly estimated at single-digit percentages of total energy contribution in a 5K, and negligible in a half marathon or marathon). However, it matters indirectly in three ways an AI engine should track:
+
+1. **Finishing kicks and surges** in any race distance rely on anaerobic capacity even when the race itself is aerobically dominated.
+2. **VO2 max training (Part 3)** deliberately recruits some anaerobic contribution as a side effect of running at very high intensities — this is expected and not a flaw in the workout.
+3. **Neuromuscular power and stride mechanics** developed via short, fast anaerobic-system work (strides, hill sprints) carry over into running economy (Section 6) even for marathoners who will never race anaerobically.
+
+### 3.3 How Training Changes It
+
+Anaerobic capacity and power respond quickly (within 2–4 weeks) to short, maximal-effort training, but this is also the *most injury-risky and most easily overdone* training stimulus in the entire system, because of the high forces and high neuromuscular demand involved. This is why this knowledge base treats true anaerobic-system work (sprinting, all-out 200–400m repeats) as a small, carefully dosed supplement — never a primary training focus — for any runner targeting 5K or longer.
+
+**AI Rule 3.1 — Anaerobic Work Dosing**
+```
+FOR goal_event ≥ 5K:
+   anaerobic_specific_work (sprints, all-out short reps) should never
+   exceed a small minority of total weekly high-intensity volume,
+   and should be introduced only after an adequate aerobic base and
+   threshold foundation exist (see Part 5, base phase prerequisites).
+
+FOR goal_event ≤ 1500m:
+   anaerobic contribution is performance-relevant and should be
+   trained directly and progressively — see Part 6 for event-specific
+   handling (out of scope for most adult-recreational-app users but
+   retained for completeness).
+```
+
+---
+
+## 4.0 Lactate Threshold
+
+### 4.1 What It Is — and the Two-Threshold Model
+
+"Lactate threshold" is colloquially used as a single term but is more accurately understood as **two distinct physiological landmarks**, and the AI engine should treat them as separate variables, not one:
+
+- **LT1 (aerobic threshold)** — roughly the highest intensity at which blood lactate remains only slightly above resting levels (commonly referenced near ~2 mmol/L, though absolute values vary by individual and by assay). Below this point, effort is almost purely aerobic and can be sustained for very long durations with minimal accumulating fatigue.
+- **LT2 (lactate threshold / maximal lactate steady state, MLSS)** — the highest intensity at which the body can still *clear* lactate as fast as it's produced, so blood lactate stabilises rather than rising continuously (commonly referenced near ~4 mmol/L, again individually variable). Above LT2, lactate (and fatigue) accumulates progressively and the pace cannot be held indefinitely. A review of lactate-threshold concepts noted that LT1 and LT2 are genuinely distinct physiological landmarks, and that training at LT1 produces dramatically less metabolic and neuromuscular fatigue cost than training at or above LT2.
+
+### 4.2 Why It Matters More Than VO2 Max for Most Race Distances
+
+For half marathon and marathon racing especially, **LT2 (and the runner's ability to sustain a pace just below it) is a stronger predictor of performance than VO2 max alone**, because these races are run at intensities close to threshold, not close to maximal aerobic capacity. This is precisely why the modern Norwegian system (Part 10) is built around *lactate-controlled threshold volume* rather than maximal-effort interval volume — the philosophy is to accumulate as much high-quality time as possible just below LT2, because that is the literal physiological zone the races are contested in, while staying below the point where fatigue cost becomes prohibitively high.
+
+### 4.3 How Training Changes It
+
+Threshold training raises LT2 primarily by improving the muscle's capacity to *clear and buffer* lactate and hydrogen ions (via mitochondrial adaptations, monocarboxylate transporter density, and buffering capacity), allowing the same absolute pace to be sustained at a lower relative physiological cost — which is also why an improving runner's **lactate curve shifts right** (the same blood lactate concentration now occurs at a faster pace) even when VO2 max itself barely changes. This is one of the most trainable variables in distance running and typically the single highest-leverage system to develop for 10K-through-marathon athletes.
+
+**AI Rule 4.1 — Threshold as the Primary Lever for 10K–Marathon Athletes**
+```
+IF goal_event ∈ {10K, Half Marathon, Marathon}
+   AND athlete has an adequate aerobic base (Section 2)
+THEN threshold-zone work (Part 3, "Threshold" zone) should receive
+     the largest share of total weekly high-intensity volume,
+     ahead of VO2 max work — this is a deliberate, evidence-aligned
+     prioritisation, not an oversight.
+```
+
+---
+
+## 5.0 VO2 Max
+
+### 5.1 What It Is
+
+VO2 max is the maximum rate at which the body can consume oxygen during exercise, expressed relative to body mass (mL/kg/min). It represents the *ceiling* of the aerobic system — the ultimate ceiling under which LT1 and LT2 operate. A runner cannot have a threshold pace faster than their VO2 max allows, but two runners with identical VO2 max can have very different threshold paces depending on what *percentage* of VO2 max they can sustain (their "fractional utilisation").
+
+### 5.2 Why It Matters — and Why It's Overrated by Beginners
+
+VO2 max correlates strongly with performance *across* different runners of very different ability levels (it's a good predictor of who can beat whom across a wide talent range), but it is a comparatively weak predictor of *improvement* within an already-trained individual, because:
+
+1. VO2 max has a substantial genetic ceiling and **plateaus relatively early** in a runner's development — often within the first 1–3 years of serious training — while race times for the same runner continue improving for years afterward via threshold and economy gains (Sections 4 and 6).
+2. Twin and family studies consistently show large individual differences in VO2 max *trainability* — commonly cited in the literature as roughly a 2–3x range between low and high responders to identical training stimuli — meaning two athletes can do the exact same VO2-focused block and see very different results, purely due to genetics. This is direct evidence for Part 1's individualisation principle.
+
+### 5.3 How Training Changes It
+
+VO2 max responds most reliably to training intensities at or near the velocity associated with VO2 max itself (commonly notated vVO2max) — typically efforts in the 3–8 minute range at high intensity, repeated with adequate (not complete) recovery, accumulating roughly 15–25+ total minutes at or near VO2 max intensity per session. This is the physiological basis for the "VO2 max" intensity zone covered fully in Part 3.
+
+**AI Rule 5.1 — VO2 Max Work Allocation by Training Age and Event**
+```
+VO2max-specific work is valuable for nearly all events, but its
+*relative priority* against threshold work should shift:
+
+IF training_age_stage = Foundation
+THEN VO2max work should be minimal — the aerobic base (Section 2)
+     and LT1 development have far higher near-term return.
+
+IF goal_event ∈ {5K, 10K} AND training_age_stage ∈ {Specialisation, Performance}
+THEN VO2max work should receive a meaningfully larger share of
+     weekly intensity than for marathon-focused athletes, since
+     5K/10K racing intensity sits much closer to VO2max itself.
+
+IF goal_event = Marathon
+THEN VO2max work should be a small, maintenance-level component —
+     useful for top-end speed and economy carryover, but never the
+     primary focus (see Part 6).
+```
+
+---
+
+## 6.0 Running Economy
+
+### 6.1 What It Is
+
+Running economy is the oxygen (or energy) cost of running at a given submaximal pace — effectively, "miles per gallon" for a runner. Two athletes with identical VO2 max can have very different race times if one has meaningfully better running economy, because the economical runner reaches a lower percentage of their ceiling at any given race pace, leaving more in reserve and delaying fatigue. A 2024 systematic review and meta-analysis of observational studies examining the relationship between running biomechanics and running economy found that the picture is genuinely complex — many individual biomechanical variables show inconsistent associations with economy across studies, which is an important and somewhat humbling finding for any coaching system that wants to claim simple, universal "fixes."
+
+### 6.2 What Actually Seems to Drive Running Economy
+
+Drawing on the current evidence base, the more consistently supported contributors include:
+
+- **Body mass and mass distribution** — lower mass (within healthy, individually appropriate ranges) and lighter extremities (e.g., lighter shoes, less distal mass) reduce the energy cost of swinging limbs, though this must always be weighed against the injury and health risks of pursuing low body mass aggressively (see Part 8/9 on injury and Part 1's non-negotiable safety framing).
+- **Tendon and muscle-tendon stiffness** — stiffer, more elastic tendons (particularly the Achilles) store and return more elastic energy per stride, reducing the metabolic cost of each ground contact. This is a major reason **resistance/strength training improves running economy**: a 2024–2025 meta-analytic body of work on resistance training's effect on running economy in long-distance runners, and a related KU Leuven study combining endurance and strength training over 20 weeks, both point toward genuine, trainable improvement in economy from appropriately dosed strength work — independent of any change in body composition.
+- **Neuromuscular coordination and fatigue resistance ("economy durability")** — a runner's economy at the *start* of a long effort matters less than how well it holds up over time. A 2024 study following well-trained male runners found that faster runners maintained their running economy markedly better as a long run progressed than slower peers — a phenomenon now referred to in the literature as **running economy durability**, and a strong argument for including economy-relevant work (strides, light strength) even within long runs rather than only in isolated short sessions.
+- **Footwear** — modern carbon-plated, highly cushioned racing shoes measurably improve running economy (commonly cited in the 2–4%+ range for well-fitted athletes), a large enough effect that it is now a standard and expected part of elite and sub-elite race preparation, not a marginal gimmick.
+- **Self-optimisation through volume** — simply accumulating running volume over years allows the neuromuscular system to self-select more efficient movement patterns without explicit technique coaching, which is part of why long-term training age (Part 1, Section 9) is itself a predictor of economy.
+
+### 6.3 The Important Caution for an AI Engine
+
+Because the evidence on *prescriptive* biomechanical "fixes" (cadence targets, footstrike pattern, vertical oscillation targets) is genuinely mixed and individually variable, this knowledge base's position — fully developed in **Part 7** — is that an AI engine should be **very conservative about prescribing biomechanical changes** based on Garmin running-dynamics metrics alone, and should prioritise the better-evidenced levers above (volume/training age, strength training, footwear, fatigue resistance) over chasing a "textbook" running form.
+
+**AI Rule 6.1 — Running Economy Intervention Priority**
+```
+Preferred order of intervention for improving running economy:
+   1. Increase training age / consistent volume (self-optimising, lowest risk)
+   2. Add appropriately dosed strength training (Part 8)
+   3. Optimise footwear for the athlete's event and foot type
+   4. Address economy *durability* via fatigue-resistance work
+      (race-pace segments late in long runs)
+   5. (Lowest priority, highest individual variability) — targeted
+      biomechanical cueing, and only when a specific metric is a clear
+      outlier vs. the athlete's own baseline (see Part 7)
+```
+
+---
+
+## 7.0 Fat Oxidation
+
+### 7.1 What It Is
+
+Fat oxidation is the use of stored fat (triglycerides, both intramuscular and from adipose tissue) as fuel for aerobic metabolism. Fat is an almost limitlessly abundant fuel source even in lean athletes, but it can only be metabolised aerobically and at a comparatively slow rate, which is why the body must blend it with carbohydrate, with the *ratio* shifting toward more carbohydrate use as intensity rises.
+
+### 7.2 Why It Matters
+
+The point at which fat oxidation rate peaks (sometimes called "FatMax") typically sits in a moderate-intensity aerobic zone — broadly in the same territory as the easy/Zone 2 training intensity covered in Part 3, which is part of the physiological justification for that zone's popular framing as "fat-burning." For distance events from the marathon upward, maximising fat oxidation capacity is directly performance-relevant: it spares limited glycogen stores (Section 8), delaying the point of glycogen depletion that causes catastrophic late-race slowdown (colloquially "the wall").
+
+### 7.3 How Training Changes It
+
+Fat oxidation capacity improves with **chronic low-to-moderate intensity volume** — again pointing back to the aerobic base (Section 2) as the primary driver — and can be further sharpened with deliberately glycogen-depleted easy/long running (e.g., a portion of long runs done in a partially fueled or fasted state, sometimes used by marathon-focused athletes), though this comes with trade-offs (reduced session quality, increased perceived effort, and — for athletes with any disordered-eating risk factors — a practice the AI engine should never recommend without real caution, deferring to Part 1's wellbeing-first constraints).
+
+**AI Rule 7.1 — Fat Oxidation Relevance Gate**
+```
+IF goal_event ∈ {Half Marathon, Marathon}
+THEN fat-oxidation development is directly performance-relevant;
+     prioritise consistent easy-pace long runs as the primary lever.
+
+IF athlete shows any indicator of disordered eating risk or
+   excessive focus on body composition (see Part 1 wellbeing constraints)
+THEN do not suggest fasted training or deliberate glycogen depletion
+     under any circumstances, regardless of event distance.
+```
+
+---
+
+## 8.0 Glycogen Utilisation
+
+### 8.1 What It Is
+
+Glycogen is the body's stored form of carbohydrate (in muscle and liver), and it is the preferred and most efficient fuel at moderate-to-high running intensities. Total glycogen stores are finite — commonly estimated at roughly 90–120 minutes of continuous moderate-to-hard running for a well-fueled but untrained store, extendable through training adaptations and in-race fueling.
+
+### 8.2 Why It Matters
+
+Glycogen depletion is the proximate physiological cause of the marathon "wall": as muscle glycogen runs low, the body is forced to rely more heavily on the slower fat-oxidation pathway (Section 7) at a pace that demands faster ATP turnover than fat alone can supply, forcing a involuntary pace collapse. This is why marathon-specific training (Part 6) places such heavy emphasis on (a) long runs that push glycogen-depletion adaptations, (b) practising in-race carbohydrate fueling, and (c) building the aerobic/fat-oxidation base that delays depletion in the first place.
+
+### 8.3 How Training Changes It
+
+Training increases **glycogen storage capacity** (trained muscle can store meaningfully more glycogen than untrained muscle) and improves the *efficiency* of glycogen use at a given pace (a direct overlap with running economy, Section 6). Long runs and glycogen-depleting sessions also train the gut to tolerate in-race carbohydrate intake — an underrated, highly practical adaptation that has nothing to do with cardiovascular fitness but is frequently the actual limiter in marathon performance.
+
+**AI Rule 8.1 — Fueling Rehearsal Requirement (Marathon/Half Marathon)**
+```
+FOR goal_event ∈ {Half Marathon, Marathon}:
+   AT LEAST the final 3–4 long runs before the race must include
+   in-race-identical carbohydrate fueling practice (type, timing,
+   quantity) — this is treated as a mandatory specificity requirement
+   (Part 1, Section 6), not an optional add-on.
+```
+
+---
+
+## 9.0 Muscle Fibre Recruitment
+
+### 9.1 What It Is
+
+Skeletal muscle is composed of different fibre types, broadly categorised as:
+
+- **Type I (slow-twitch)** — fatigue-resistant, oxygen-efficient, lower force/power output. Dominant contributor to sustained aerobic running.
+- **Type IIa (fast-twitch, oxidative)** — intermediate; capable of both moderate endurance and meaningful power, and the fibre type most responsive to training-induced shifts in character.
+- **Type IIx (fast-twitch, glycolytic)** — highest force/power, fastest fatigue, dominant in sprinting and maximal short efforts.
+
+### 9.2 Why It Matters
+
+The body recruits fibres in a graded fashion broadly following **Henneman's size principle**: at low intensities, Type I fibres alone are sufficient; as intensity rises (and as Type I fibres fatigue during prolonged efforts), progressively more Type IIa and eventually Type IIx fibres are recruited to maintain force output. This has two direct coaching implications:
+
+1. **Late in a long race or long run, fibre recruitment shifts toward less efficient, faster-fatiguing fibre types even at the same pace** — a major contributor to the "economy durability" phenomenon discussed in Section 6, and another reason fatigue-resistance training (race-pace segments inserted into long runs) is so valuable.
+2. **Fibre type distribution is substantially genetic but has a trainable component** — endurance training can shift some IIx characteristics toward more IIa-like (more oxidative) behaviour, which is one of the cellular mechanisms underlying long-term aerobic improvement, while explosive/sprint training can do the reverse to a degree. This is a slow, multi-year adaptation, not something a single training block changes meaningfully.
+
+### 9.3 How Training Changes It
+
+High-volume aerobic training increases the oxidative capacity of Type IIa fibres specifically (making them behave more like efficient hybrid fibres); strength and power work preserves and can modestly enhance Type IIx force output, which matters for finishing speed and economy even in fibre populations rarely maximally recruited during steady-state racing.
+
+**AI Rule 9.1 — Fibre-Type-Informed Strength Inclusion**
+```
+FOR ALL athletes, regardless of event distance:
+   include a small, consistent dose of neuromuscular/power work
+   (strides, light plyometrics, hill sprints — see Part 4 and Part 8)
+   year-round, not just in a "speed phase" — this preserves Type II
+   fibre force capacity and economy-relevant neuromuscular sharpness
+   that pure aerobic volume alone does not maintain.
+```
+
+---
+
+## 10.0 Synthesis: Energy System Training Rules
+
+This table is the practical bridge from physiology (this chapter) to the intensity zones (Part 3) and workout library (Part 4). It should be treated as the engine's lookup table for "which system does this serve, and how is it best trained."
+
+| System | Primary Training Stimulus | Adaptation Timescale | Best-Suited Zone (Part 3 preview) | Primary Relevance By Event |
+|---|---|---|---|---|
+| Aerobic capacity (central) | High volume, sustained over months–years | Slow (months) | Zone 1–2 (Easy/Long) | All events, especially Half/Marathon |
+| Aerobic capacity (peripheral) | Volume + moderate intensity | Slow–moderate | Zone 1–3 | All events |
+| Anaerobic system | Short, maximal efforts | Fast (2–4 weeks) but high-risk | Sprint/neuromuscular | Mainly ≤1500m; small dose for all |
+| LT1 (aerobic threshold) | High volume of comfortable-but-purposeful running | Moderate | Zone 2 | All events |
+| LT2 (lactate threshold) | Sustained efforts just below MLSS | Moderate-fast, highly trainable | Threshold zone | Especially 10K–Marathon |
+| VO2 max | 3–8 min efforts at high intensity | Fast initially, plateaus early | VO2max zone | Especially 5K/10K |
+| Running economy | Volume + strength training + fatigue-resistance work | Slow, multi-year | Cuts across all zones | All events |
+| Fat oxidation | Chronic easy-pace volume | Slow | Zone 1–2 | Especially Half/Marathon |
+| Glycogen utilisation/storage | Long runs + fueling practice | Moderate | Long run / race-pace work | Especially Half/Marathon |
+| Muscle fibre recruitment/economy durability | Race-pace segments late in long efforts, year-round neuromuscular work | Slow, multi-year | Strides/hills + long run inclusions | All events |
+
+---
+
+## 11.0 Chapter Summary — Carried Forward Into Later Parts
+
+| Physiological System | One-line coaching takeaway | Where it gets operationalised later |
+|---|---|---|
+| Aerobic system | Volume and time, not intensity, build the engine | Part 3 (zones), Part 5 (base phase) |
+| Anaerobic system | Small, careful dose; never the primary focus for 5K+ | Part 4 (workout library), Part 6 |
+| Lactate threshold (LT1/LT2) | The single highest-leverage system for 10K–Marathon | Part 3 (Threshold zone), Part 10 (Norwegian method) |
+| VO2 max | Plateaus early; prioritise for 5K/10K more than marathon | Part 3, Part 6 |
+| Running economy | Built by training age, strength work, and fatigue resistance — not by chasing biomechanical "ideals" | Part 7 (metrics), Part 8 (strength) |
+| Fat oxidation | The physiological reason easy running matters for marathoners | Part 5, Part 6 |
+| Glycogen utilisation | Train the gut and the depletion tolerance, not just the legs | Part 6 (marathon fueling) |
+| Muscle fibre recruitment | Keep a year-round neuromuscular dose regardless of event | Part 4 (strides/hills), Part 8 |
+
+
